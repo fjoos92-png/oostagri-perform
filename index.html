@@ -151,6 +151,17 @@
                                 });
                             }
                         });
+
+                        // Kyk ook vir bestaande waiting worker
+                        if (reg.waiting) {
+                            window.swUpdateAvailable = true;
+                            window.dispatchEvent(new CustomEvent('swUpdateAvailable'));
+                        }
+
+                        // Periodieke update check (elke 60 minute)
+                        setInterval(() => {
+                            reg.update().catch(err => console.log('SW update check fout:', err));
+                        }, 60 * 60 * 1000);
                     })
                     .catch(err => console.log('SW fout:', err));
 

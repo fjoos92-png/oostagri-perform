@@ -25,7 +25,7 @@ self.addEventListener('install', (event) => {
         caches.open(CACHE_NAME).then(async (cache) => {
             // Cache core assets
             await cache.addAll(CORE_ASSETS);
-            
+
             // Try to cache CDN assets
             for (const url of CDN_ASSETS) {
                 try {
@@ -39,7 +39,7 @@ self.addEventListener('install', (event) => {
             }
         })
     );
-    self.skipWaiting();
+    // Moenie skipWaiting hier roep nie - wag vir gebruiker se aksie via SKIP_WAITING boodskap
 });
 
 // Activate: Clean old caches
