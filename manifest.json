@@ -1,0 +1,49 @@
+{
+  "name": "Oostagri Leierskapsterugvoer",
+  "short_name": "Leierskap",
+  "description": "Bestuursgedrag- en leierskapsterugvoer vir Frikkie Oosthuizen & Seuns",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity"],
+  "lang": "af",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231e293b' width='100' height='100' rx='22'/><path d='M50 20 L50 35 M35 30 L50 20 L65 30' stroke='%23f59e0b' stroke-width='4' stroke-linecap='round' fill='none'/><circle cx='50' cy='50' r='15' fill='none' stroke='%23f59e0b' stroke-width='3'/><path d='M50 65 L50 80 M35 70 L50 80 L65 70' stroke='%23f59e0b' stroke-width='4' stroke-linecap='round' fill='none'/><circle cx='30' cy='50' r='8' fill='%23f59e0b' opacity='0.6'/><circle cx='70' cy='50' r='8' fill='%23f59e0b' opacity='0.6'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231e293b' width='100' height='100'/><path d='M50 25 L50 38 M38 32 L50 25 L62 32' stroke='%23f59e0b' stroke-width='4' stroke-linecap='round' fill='none'/><circle cx='50' cy='50' r='12' fill='none' stroke='%23f59e0b' stroke-width='3'/><path d='M50 62 L50 75 M38 68 L50 75 L62 68' stroke='%23f59e0b' stroke-width='4' stroke-linecap='round' fill='none'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%231e293b' width='512' height='512' rx='112'/><path d='M256 100 L256 175 M175 145 L256 100 L337 145' stroke='%23f59e0b' stroke-width='20' stroke-linecap='round' fill='none'/><circle cx='256' cy='256' r='75' fill='none' stroke='%23f59e0b' stroke-width='16'/><path d='M256 337 L256 412 M175 367 L256 412 L337 367' stroke='%23f59e0b' stroke-width='20' stroke-linecap='round' fill='none'/><circle cx='150' cy='256' r='40' fill='%23f59e0b' opacity='0.6'/><circle cx='362' cy='256' r='40' fill='%23f59e0b' opacity='0.6'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nuwe Evaluasie",
+      "short_name": "Evalueer",
+      "description": "Begin 'n nuwe evaluasie",
+      "url": "./?action=evaluate",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23059669' width='96' height='96' rx='20'/><path d='M48 24 v48 M24 48 h48' stroke='white' stroke-width='8' stroke-linecap='round'/></svg>",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

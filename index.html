@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>Oostagri Leierskap</title>
+    <meta name="description" content="Leierskapsterugvoer en -ontwikkeling vir Frikkie Oosthuizen & Seuns">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- CDN Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+        
+        .font-display { font-family: 'DM Serif Display', Georgia, serif; }
+        
+        .safe-top { padding-top: max(env(safe-area-inset-top, 0px), 16px) !important; }
+        .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px) !important; }
+        
+        /* Gradient backgrounds */
+        .bg-gradient-dark {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+        }
+        .bg-gradient-card {
+            background: linear-gradient(145deg, #1e293b 0%, #334155 100%);
+        }
+        .bg-gradient-gold {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        .bg-gradient-success {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+        
+        /* Glass effect */
+        .glass {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        @keyframes pulse-gold {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .animate-fade-in { animation: fadeInUp 0.4s ease-out forwards; }
+        .animate-fade-in-delay-1 { animation: fadeInUp 0.4s ease-out 0.1s forwards; opacity: 0; }
+        .animate-fade-in-delay-2 { animation: fadeInUp 0.4s ease-out 0.2s forwards; opacity: 0; }
+        .animate-fade-in-delay-3 { animation: fadeInUp 0.4s ease-out 0.3s forwards; opacity: 0; }
+        .animate-pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
+        .animate-spin { animation: spin 1s linear infinite; }
+        
+        .skeleton {
+            background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        /* Rating stars */
+        .star { transition: all 0.15s ease; cursor: pointer; }
+        .star:hover { transform: scale(1.2); }
+        .star-filled { color: #f59e0b; }
+        .star-empty { color: #475569; }
+        
+        /* Progress ring */
+        .progress-ring { transform: rotate(-90deg); }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        /* Input focus */
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+        
+        /* Prevent zoom on iOS */
+        input, select, textarea { font-size: 16px !important; }
+        
+        /* Hide number input spinners */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW geregistreer:', reg.scope))
+                    .catch(err => console.log('SW fout:', err));
+            });
+        }
+    </script>
+    
+    <!-- Offline Queue -->
+    <script>
+        const OfflineQueue = {
+            QUEUE_KEY: 'leierskap_offline_queue',
+            add: (item, action = 'SUBMIT') => {
+                const queue = JSON.parse(localStorage.getItem(OfflineQueue.QUEUE_KEY) || '[]');
+                queue.push({ ...item, _queuedAt: Date.now(), _action: action });
+                localStorage.setItem(OfflineQueue.QUEUE_KEY, JSON.stringify(queue));
+            },
+            getAll: () => JSON.parse(localStorage.getItem(OfflineQueue.QUEUE_KEY) || '[]'),
+            remove: (queuedAt) => {
+                const queue = OfflineQueue.getAll();
+                localStorage.setItem(OfflineQueue.QUEUE_KEY, JSON.stringify(queue.filter(o => o._queuedAt !== queuedAt)));
+            },
+            clear: () => localStorage.removeItem(OfflineQueue.QUEUE_KEY),
+            count: () => OfflineQueue.getAll().length
+        };
+        window.OfflineQueue = OfflineQueue;
+    </script>
+    
+    <!-- SVG Icons -->
+    <script>
+        const Icons = {
+            User: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('path', {key: 1, d: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'}),
+                React.createElement('circle', {key: 2, cx: 12, cy: 7, r: 4})
+            ]),
+            Users: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('path', {key: 1, d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'}),
+                React.createElement('circle', {key: 2, cx: 9, cy: 7, r: 4}),
+                React.createElement('path', {key: 3, d: 'M23 21v-2a4 4 0 0 0-3-3.87'}),
+                React.createElement('path', {key: 4, d: 'M16 3.13a4 4 0 0 1 0 7.75'})
+            ]),
+            CheckCircle: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('path', {key: 1, d: 'M22 11.08V12a10 10 0 1 1-5.93-9.14'}),
+                React.createElement('polyline', {key: 2, points: '22 4 12 14.01 9 11.01'})
+            ]),
+            Circle: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, className
+            }, React.createElement('circle', {cx: 12, cy: 12, r: 10})),
+            Star: ({size = 24, filled = false, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24',
+                fill: filled ? 'currentColor' : 'none',
+                stroke: 'currentColor', strokeWidth: 2, className
+            }, React.createElement('polygon', {
+                points: '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'
+            })),
+            ArrowLeft: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('line', {key: 1, x1: 19, y1: 12, x2: 5, y2: 12}),
+                React.createElement('polyline', {key: 2, points: '12 19 5 12 12 5'})
+            ]),
+            ArrowRight: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('line', {key: 1, x1: 5, y1: 12, x2: 19, y2: 12}),
+                React.createElement('polyline', {key: 2, points: '12 5 19 12 12 19'})
+            ]),
+            LogOut: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('path', {key: 1, d: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'}),
+                React.createElement('polyline', {key: 2, points: '16 17 21 12 16 7'}),
+                React.createElement('line', {key: 3, x1: 21, y1: 12, x2: 9, y2: 12})
+            ]),
+            Clock: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('circle', {key: 1, cx: 12, cy: 12, r: 10}),
+                React.createElement('polyline', {key: 2, points: '12 6 12 12 16 14'})
+            ]),
+            BarChart: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('line', {key: 1, x1: 12, y1: 20, x2: 12, y2: 10}),
+                React.createElement('line', {key: 2, x1: 18, y1: 20, x2: 18, y2: 4}),
+                React.createElement('line', {key: 3, x1: 6, y1: 20, x2: 6, y2: 16})
+            ]),
+            Download: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('path', {key: 1, d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'}),
+                React.createElement('polyline', {key: 2, points: '7 10 12 15 17 10'}),
+                React.createElement('line', {key: 3, x1: 12, y1: 15, x2: 12, y2: 3})
+            ]),
+            AlertCircle: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('circle', {key: 1, cx: 12, cy: 12, r: 10}),
+                React.createElement('line', {key: 2, x1: 12, y1: 8, x2: 12, y2: 12}),
+                React.createElement('line', {key: 3, x1: 12, y1: 16, x2: 12.01, y2: 16})
+            ]),
+            Wifi: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('path', {key: 1, d: 'M5 12.55a11 11 0 0 1 14.08 0'}),
+                React.createElement('path', {key: 2, d: 'M1.42 9a16 16 0 0 1 21.16 0'}),
+                React.createElement('path', {key: 3, d: 'M8.53 16.11a6 6 0 0 1 6.95 0'}),
+                React.createElement('line', {key: 4, x1: 12, y1: 20, x2: 12.01, y2: 20})
+            ]),
+            WifiOff: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('line', {key: 1, x1: 1, y1: 1, x2: 23, y2: 23}),
+                React.createElement('path', {key: 2, d: 'M16.72 11.06A10.94 10.94 0 0 1 19 12.55'}),
+                React.createElement('path', {key: 3, d: 'M5 12.55a10.94 10.94 0 0 1 5.17-2.39'}),
+                React.createElement('path', {key: 4, d: 'M10.71 5.05A16 16 0 0 1 22.58 9'}),
+                React.createElement('path', {key: 5, d: 'M1.42 9a15.91 15.91 0 0 1 4.7-2.88'}),
+                React.createElement('path', {key: 6, d: 'M8.53 16.11a6 6 0 0 1 6.95 0'}),
+                React.createElement('line', {key: 7, x1: 12, y1: 20, x2: 12.01, y2: 20})
+            ]),
+            Shield: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, React.createElement('path', {d: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'})),
+            Clipboard: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('path', {key: 1, d: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'}),
+                React.createElement('rect', {key: 2, x: 8, y: 2, width: 8, height: 4, rx: 1, ry: 1})
+            ]),
+            Home: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('path', {key: 1, d: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}),
+                React.createElement('polyline', {key: 2, points: '9 22 9 12 15 12 15 22'})
+            ]),
+            Refresh: ({size = 24, className = ''}) => React.createElement('svg', {
+                width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+                stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                className
+            }, [
+                React.createElement('polyline', {key: 1, points: '23 4 23 10 17 10'}),
+                React.createElement('path', {key: 2, d: 'M20.49 15a9 9 0 1 1-2.12-9.36L23 10'})
+            ])
+        };
+        window.Icons = Icons;
+    </script>
+    
+    <!-- Main React App -->
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+        
+        // ============================================
+        // KONFIGURASIE
+        // ============================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyh9zVUe46i5ZX_sXBiDmKv3lHnGSH1VWwpgzJgdLYKL9XrKd5edHUWpWAbVGX_B1jF/exec';
+        const APP_VERSION = '1.0.0';
+        const CACHE_KEY = 'leierskap_cache';
+        const USER_KEY = 'leierskap_user';
+        
+        // Die 7 evaluasievrae
+        const QUESTIONS = [
+            {
+                id: 'q1',
+                title: 'Aanspreeklikheid en Eienaarskap',
+                description: 'In watter mate neem die bestuurder volle verantwoordelikheid vir die uitkomste, standaarde, beloftes en teikens van sy/haar afdeling?',
+                hint: 'Let op konsekwentheid, opvolging en bereidheid om verantwoordelikheid te aanvaar sonder verskonings.'
+            },
+            {
+                id: 'q2',
+                title: 'Strategiese Fokus en Prioriteitsbestuur',
+                description: 'Hoe doeltreffend bestuur die persoon prioriteite, beplanning en uitvoering in lyn met die onderneming se strategie?',
+                hint: 'Let op fokus, opvolging, implementering en die vermoë om te onderskei tussen dringend en belangrik.'
+            },
+            {
+                id: 'q3',
+                title: 'Kommunikasie en Samewerking',
+                description: 'Hoe duidelik, betyds en oplossingsgerig kommunikeer die bestuurder met spanlede, ander afdelings en topbestuur?',
+                hint: 'Let op professionele toon, luistervaardigheid, samewerking en die vermoë om vertroue te bou.'
+            },
+            {
+                id: 'q4',
+                title: 'Leierskapgedrag',
+                description: 'Hoe tree die persoon op as leier — in terme van voorbeeld stel, konsekwentheid, karakter en stabiliteit?',
+                hint: 'Let op gedrag onder druk en die vermoë om rigting en stabiliteit te bied.'
+            },
+            {
+                id: 'q5',
+                title: 'Kwaliteit van Besluite',
+                description: 'In watter mate word besluite geneem op grond van kwaliteitsdata, risiko-insig en langtermynvolhoubaarheid?',
+                hint: 'Let op oordeel, analitiese denke en vooruitbeplanning.'
+            },
+            {
+                id: 'q6',
+                title: 'Verbetering en Leer',
+                description: 'Hoe sterk is die bestuurder se ingesteldheid tot voortdurende verbetering (Kaizen) en professionele groei?',
+                hint: 'Let op selfrefleksie, bereidheid om terugvoer te ontvang, en volgehoue verbetering.'
+            },
+            {
+                id: 'q7',
+                title: 'Familiewaardes en Kultuurbelynheid',
+                description: 'Hoe konsekwent reflekteer die bestuurder die familie se waardes in sy/haar optrede en leierskap?',
+                hint: 'Let op integriteit, respek, lojaliteit, rentmeesterskap, samewerking, nederigheid en langtermyn-denke.'
+            }
+        ];
+        
+        const GRADE_LABELS = {
+            1: 'Voldoen nie aan vereistes',
+            2: 'Gedeeltelik voldoen',
+            3: 'Voldoen aan vereistes',
+            4: 'Oorskry vereistes',
+            5: 'Uitsonderlik'
+        };
+        
+        // ============================================
+        // API HELPERS
+        // ============================================
+        const apiCall = async (action, params = {}) => {
+            const url = new URL(API_URL);
+            url.searchParams.append('action', action);
+            Object.entries(params).forEach(([key, value]) => {
+                if (typeof value === 'object') {
+                    url.searchParams.append(key, JSON.stringify(value));
+                } else {
+                    url.searchParams.append(key, value);
+                }
+            });
+            
+            try {
+                const response = await fetch(url.toString());
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                return { success: false, error: 'Netwerkfout', offline: true };
+            }
+        };
+        
+        // ============================================
+        // HOOF APP
+        // ============================================
+        const App = () => {
+            // State
+            const [screen, setScreen] = useState('login');
+            const [currentUser, setCurrentUser] = useState(() => {
+                const saved = localStorage.getItem(USER_KEY);
+                return saved ? JSON.parse(saved) : null;
+            });
+            const [currentCycle, setCurrentCycle] = useState(null);
+            const [subjects, setSubjects] = useState([]);
+            const [completedSubjects, setCompletedSubjects] = useState([]);
+            const [selectedSubject, setSelectedSubject] = useState(null);
+            const [isOnline, setIsOnline] = useState(navigator.onLine);
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [toast, setToast] = useState(null);
+            
+            // Coach state
+            const [coachData, setCoachData] = useState(null);
+            const [selectedPersonDetail, setSelectedPersonDetail] = useState(null);
+            
+            // Online/Offline tracking
+            useEffect(() => {
+                const handleOnline = () => {
+                    setIsOnline(true);
+                    syncOfflineQueue();
+                };
+                const handleOffline = () => setIsOnline(false);
+                
+                window.addEventListener('online', handleOnline);
+                window.addEventListener('offline', handleOffline);
+                
+                return () => {
+                    window.removeEventListener('online', handleOnline);
+                    window.removeEventListener('offline', handleOffline);
+                };
+            }, []);
+            
+            // Auto-login check
+            useEffect(() => {
+                if (currentUser) {
+                    loadInitialData();
+                }
+            }, []);
+            
+            // Sync offline queue
+            const syncOfflineQueue = async () => {
+                const queue = OfflineQueue.getAll();
+                for (const item of queue) {
+                    try {
+                        const result = await apiCall('submitEvaluation', { data: item });
+                        if (result.success) {
+                            OfflineQueue.remove(item._queuedAt);
+                        }
+                    } catch (e) {
+                        break;
+                    }
+                }
+            };
+            
+            // Load initial data
+            const loadInitialData = async () => {
+                setIsLoading(true);
+                try {
+                    // Get current cycle
+                    const cycleResult = await apiCall('getCurrentCycle');
+                    if (cycleResult.success) {
+                        setCurrentCycle(cycleResult.cycle);
+                        
+                        // Get subjects
+                        const subjectsResult = await apiCall('getSubjects', { userId: currentUser.code });
+                        if (subjectsResult.success) {
+                            setSubjects(subjectsResult.subjects);
+                        }
+                        
+                        // Get evaluation status
+                        const statusResult = await apiCall('getEvaluationStatus', {
+                            userId: currentUser.code,
+                            cycleId: cycleResult.cycle.id
+                        });
+                        if (statusResult.success) {
+                            setCompletedSubjects(statusResult.completedSubjects);
+                        }
+                        
+                        // If coach, load summary
+                        if (currentUser.role === 'coach') {
+                            const summaryResult = await apiCall('getCycleSummary', {
+                                cycleId: cycleResult.cycle.id,
+                                requesterId: currentUser.code
+                            });
+                            if (summaryResult.success) {
+                                setCoachData(summaryResult.summary);
+                            }
+                        }
+                        
+                        setScreen('dashboard');
+                    } else if (cycleResult.noCycle) {
+                        setError('Geen oop evaluasiesiklus');
+                        setScreen('noCycle');
+                    }
+                } catch (e) {
+                    setError('Kon nie data laai nie');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            
+            // Login handler
+            const handleLogin = async (code) => {
+                setIsLoading(true);
+                setError(null);
+                
+                const result = await apiCall('login', { code });
+                
+                if (result.success) {
+                    setCurrentUser(result.user);
+                    localStorage.setItem(USER_KEY, JSON.stringify(result.user));
+                    await loadInitialData();
+                } else {
+                    setError(result.error || 'Ongeldige kode');
+                }
+                
+                setIsLoading(false);
+            };
+            
+            // Logout handler
+            const handleLogout = () => {
+                setCurrentUser(null);
+                setCurrentCycle(null);
+                setSubjects([]);
+                setCompletedSubjects([]);
+                setCoachData(null);
+                localStorage.removeItem(USER_KEY);
+                setScreen('login');
+            };
+            
+            // Submit evaluation
+            const handleSubmitEvaluation = async (evalData) => {
+                setIsLoading(true);
+                
+                const fullData = {
+                    ...evalData,
+                    cycleId: currentCycle.id,
+                    evaluatorCode: currentUser.code,
+                    evaluatorName: currentUser.name,
+                    subjectCode: selectedSubject.id,
+                    subjectName: selectedSubject.name
+                };
+                
+                if (isOnline) {
+                    const result = await apiCall('submitEvaluation', { data: fullData });
+                    if (result.success) {
+                        setCompletedSubjects([...completedSubjects, selectedSubject.id]);
+                        showToast('Evaluasie suksesvol gestoor!', 'success');
+                        setScreen('success');
+                    } else {
+                        showToast(result.error || 'Kon nie stoor nie', 'error');
+                    }
+                } else {
+                    OfflineQueue.add(fullData);
+                    setCompletedSubjects([...completedSubjects, selectedSubject.id]);
+                    showToast('Gestoor vir later sinkronisering', 'warning');
+                    setScreen('success');
+                }
+                
+                setIsLoading(false);
+            };
+            
+            // Toast helper
+            const showToast = (message, type = 'info') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            };
+            
+            // Start evaluation
+            const startEvaluation = (subject) => {
+                setSelectedSubject(subject);
+                setScreen('evaluation');
+            };
+            
+            // Progress calculation
+            const getProgress = () => {
+                const total = subjects.length;
+                const done = completedSubjects.length;
+                return { total, done, percentage: total > 0 ? Math.round((done / total) * 100) : 0 };
+            };
+            
+            // ============================================
+            // RENDER
+            // ============================================
+            return (
+                <div className="min-h-screen min-h-[100dvh] bg-gradient-dark">
+                    {/* Offline Banner */}
+                    {!isOnline && (
+                        <div className="fixed top-0 left-0 right-0 bg-amber-600 text-white text-center py-2 text-sm font-medium z-50 safe-top">
+                            <Icons.WifiOff size={16} className="inline mr-2" />
+                            Geen internetverbinding — werk vanlyn
+                        </div>
+                    )}
+                    
+                    {/* Toast */}
+                    {toast && (
+                        <div className={`fixed top-4 left-4 right-4 p-4 rounded-xl text-white text-center z-50 animate-fade-in ${
+                            toast.type === 'success' ? 'bg-emerald-600' :
+                            toast.type === 'error' ? 'bg-red-600' :
+                            toast.type === 'warning' ? 'bg-amber-600' : 'bg-slate-700'
+                        }`}>
+                            {toast.message}
+                        </div>
+                    )}
+                    
+                    {/* Screens */}
+                    {screen === 'login' && (
+                        <LoginScreen onLogin={handleLogin} isLoading={isLoading} error={error} />
+                    )}
+                    
+                    {screen === 'noCycle' && (
+                        <NoCycleScreen user={currentUser} onLogout={handleLogout} />
+                    )}
+                    
+                    {screen === 'dashboard' && currentUser?.role !== 'coach' && (
+                        <DashboardScreen
+                            user={currentUser}
+                            cycle={currentCycle}
+                            subjects={subjects}
+                            completedSubjects={completedSubjects}
+                            progress={getProgress()}
+                            onStartEvaluation={startEvaluation}
+                            onLogout={handleLogout}
+                            onRefresh={loadInitialData}
+                            isLoading={isLoading}
+                        />
+                    )}
+                    
+                    {screen === 'dashboard' && currentUser?.role === 'coach' && (
+                        <CoachDashboard
+                            user={currentUser}
+                            cycle={currentCycle}
+                            data={coachData}
+                            onSelectPerson={(person) => {
+                                setSelectedPersonDetail(person);
+                                setScreen('coachDetail');
+                            }}
+                            onLogout={handleLogout}
+                            onRefresh={loadInitialData}
+                            isLoading={isLoading}
+                        />
+                    )}
+                    
+                    {screen === 'evaluation' && (
+                        <EvaluationScreen
+                            subject={selectedSubject}
+                            isSelf={selectedSubject?.id === currentUser?.code}
+                            onSubmit={handleSubmitEvaluation}
+                            onBack={() => setScreen('dashboard')}
+                            isLoading={isLoading}
+                        />
+                    )}
+                    
+                    {screen === 'success' && (
+                        <SuccessScreen
+                            subject={selectedSubject}
+                            onContinue={() => setScreen('dashboard')}
+                        />
+                    )}
+                    
+                    {screen === 'coachDetail' && (
+                        <CoachDetailScreen
+                            person={selectedPersonDetail}
+                            cycle={currentCycle}
+                            user={currentUser}
+                            onBack={() => {
+                                setSelectedPersonDetail(null);
+                                setScreen('dashboard');
+                            }}
+                        />
+                    )}
+                </div>
+            );
+        };
+        
+        // ============================================
+        // LOGIN SCREEN
+        // ============================================
+        const LoginScreen = ({ onLogin, isLoading, error }) => {
+            const [code, setCode] = useState('');
+            const inputRefs = useRef([]);
+            
+            const handleChange = (index, value) => {
+                if (!/^\d*$/.test(value)) return;
+                
+                const newCode = code.split('');
+                newCode[index] = value;
+                const joined = newCode.join('').slice(0, 5);
+                setCode(joined);
+                
+                if (value && index < 4) {
+                    inputRefs.current[index + 1]?.focus();
+                }
+                
+                if (joined.length === 5) {
+                    onLogin(joined);
+                }
+            };
+            
+            const handleKeyDown = (index, e) => {
+                if (e.key === 'Backspace' && !code[index] && index > 0) {
+                    inputRefs.current[index - 1]?.focus();
+                }
+            };
+            
+            const handlePaste = (e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 5);
+                setCode(pasted);
+                if (pasted.length === 5) {
+                    onLogin(pasted);
+                }
+            };
+            
+            return (
+                <div className="min-h-screen min-h-[100dvh] flex flex-col items-center justify-center p-6 safe-top safe-bottom">
+                    {/* Logo/Brand */}
+                    <div className="text-center mb-12 animate-fade-in">
+                        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-lg">
+                            <Icons.Shield size={40} className="text-slate-900" />
+                        </div>
+                        <h1 className="font-display text-3xl text-white mb-2">Oostagri</h1>
+                        <p className="text-slate-400 text-lg">Leierskapsterugvoer</p>
+                    </div>
+                    
+                    {/* Code Input */}
+                    <div className="w-full max-w-xs animate-fade-in-delay-1">
+                        <p className="text-center text-slate-300 mb-6">Voer jou 5-syfer kode in</p>
+                        
+                        <div className="flex justify-center gap-3 mb-6" onPaste={handlePaste}>
+                            {[0, 1, 2, 3, 4].map((i) => (
+                                <input
+                                    key={i}
+                                    ref={el => inputRefs.current[i] = el}
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={1}
+                                    value={code[i] || ''}
+                                    onChange={(e) => handleChange(i, e.target.value)}
+                                    onKeyDown={(e) => handleKeyDown(i, e)}
+                                    className="w-14 h-16 text-center text-2xl font-bold bg-slate-800 border-2 border-slate-600 rounded-xl text-white focus:border-amber-500"
+                                    disabled={isLoading}
+                                />
+                            ))}
+                        </div>
+                        
+                        {error && (
+                            <div className="text-red-400 text-center mb-4 animate-fade-in">
+                                <Icons.AlertCircle size={20} className="inline mr-2" />
+                                {error}
+                            </div>
+                        )}
+                        
+                        {isLoading && (
+                            <div className="flex justify-center">
+                                <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Footer */}
+                    <div className="mt-auto pt-12 text-center text-slate-500 text-sm animate-fade-in-delay-2">
+                        <p>Frikkie Oosthuizen & Seuns (Edms) Bpk</p>
+                        <p className="mt-1">v{APP_VERSION}</p>
+                    </div>
+                </div>
+            );
+        };
+        
+        // ============================================
+        // NO CYCLE SCREEN
+        // ============================================
+        const NoCycleScreen = ({ user, onLogout }) => (
+            <div className="min-h-screen min-h-[100dvh] flex flex-col items-center justify-center p-6 safe-top safe-bottom">
+                <div className="text-center">
+                    <Icons.Clock size={64} className="mx-auto text-slate-500 mb-6" />
+                    <h2 className="font-display text-2xl text-white mb-4">Geen Oop Siklus</h2>
+                    <p className="text-slate-400 mb-8 max-w-xs">
+                        Daar is tans geen aktiewe evaluasiesiklus nie. Probeer weer later.
+                    </p>
+                    <button
+                        onClick={onLogout}
+                        className="px-6 py-3 bg-slate-700 text-white rounded-xl hover:bg-slate-600 transition"
+                    >
+                        Teken Uit
+                    </button>
+                </div>
+            </div>
+        );
+        
+        // ============================================
+        // DASHBOARD SCREEN
+        // ============================================
+        const DashboardScreen = ({
+            user, cycle, subjects, completedSubjects, progress,
+            onStartEvaluation, onLogout, onRefresh, isLoading
+        }) => {
+            const radius = 45;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (progress.percentage / 100) * circumference;
+            
+            return (
+                <div className="min-h-screen min-h-[100dvh] pb-6">
+                    {/* Header */}
+                    <div className="bg-gradient-card p-6 rounded-b-3xl safe-top">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <p className="text-slate-400 text-sm">Welkom terug</p>
+                                <h1 className="font-display text-2xl text-white">{user.name}</h1>
+                            </div>
+                            <button onClick={onLogout} className="p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700 transition">
+                                <Icons.LogOut size={20} className="text-slate-400" />
+                            </button>
+                        </div>
+                        
+                        {/* Cycle Info */}
+                        <div className="bg-slate-800/50 rounded-2xl p-4 mb-4">
+                            <div className="flex items-center gap-3">
+                                <Icons.Clock size={20} className="text-amber-500" />
+                                <div>
+                                    <p className="text-white font-medium">{cycle?.name}</p>
+                                    <p className="text-slate-400 text-sm">Huidige siklus</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Progress Ring */}
+                        <div className="flex items-center gap-6">
+                            <div className="relative w-28 h-28">
+                                <svg className="w-28 h-28 progress-ring">
+                                    <circle
+                                        cx="56" cy="56" r={radius}
+                                        fill="none" stroke="#334155" strokeWidth="8"
+                                    />
+                                    <circle
+                                        cx="56" cy="56" r={radius}
+                                        fill="none" stroke="#f59e0b" strokeWidth="8"
+                                        strokeLinecap="round"
+                                        strokeDasharray={circumference}
+                                        strokeDashoffset={offset}
+                                        className="progress-ring-circle"
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-2xl font-bold text-white">{progress.percentage}%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-3xl font-bold text-white">{progress.done}/{progress.total}</p>
+                                <p className="text-slate-400">Evaluasies voltooi</p>
+                                {progress.done === progress.total && progress.total > 0 && (
+                                    <p className="text-emerald-400 text-sm mt-1">✓ Alles klaar!</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Refresh Button */}
+                    <div className="px-6 pt-4">
+                        <button
+                            onClick={onRefresh}
+                            disabled={isLoading}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 rounded-xl text-slate-300 hover:bg-slate-700 transition disabled:opacity-50"
+                        >
+                            <Icons.Refresh size={18} className={isLoading ? 'animate-spin' : ''} />
+                            Verfris
+                        </button>
+                    </div>
+                    
+                    {/* Subject List */}
+                    <div className="px-6 pt-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">Evalueer Spanmaats</h2>
+                        
+                        <div className="space-y-3">
+                            {subjects.map((subject, index) => {
+                                const isCompleted = completedSubjects.includes(subject.id);
+                                const isSelf = subject.id === user.code;
+                                
+                                return (
+                                    <button
+                                        key={subject.id}
+                                        onClick={() => !isCompleted && onStartEvaluation(subject)}
+                                        disabled={isCompleted}
+                                        className={`w-full flex items-center gap-4 p-4 rounded-2xl transition animate-fade-in ${
+                                            isCompleted
+                                                ? 'bg-slate-800/30 opacity-60'
+                                                : 'bg-gradient-card hover:border-amber-500/50 border-2 border-transparent'
+                                        }`}
+                                        style={{ animationDelay: `${index * 0.05}s` }}
+                                    >
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                                            isSelf ? 'bg-violet-600/20' : 'bg-amber-500/20'
+                                        }`}>
+                                            {isCompleted ? (
+                                                <Icons.CheckCircle size={24} className="text-emerald-400" />
+                                            ) : (
+                                                <Icons.User size={24} className={isSelf ? 'text-violet-400' : 'text-amber-400'} />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 text-left">
+                                            <p className="text-white font-medium">
+                                                {subject.name}
+                                                {isSelf && <span className="text-violet-400 text-sm ml-2">(Self)</span>}
+                                            </p>
+                                            <p className="text-slate-400 text-sm">
+                                                {isCompleted ? 'Voltooi' : 'Tik om te evalueer'}
+                                            </p>
+                                        </div>
+                                        {!isCompleted && (
+                                            <Icons.ArrowRight size={20} className="text-slate-500" />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    
+                    {/* Offline Queue Indicator */}
+                    {OfflineQueue.count() > 0 && (
+                        <div className="mx-6 mt-6 p-4 bg-amber-600/20 border border-amber-600/30 rounded-xl">
+                            <div className="flex items-center gap-3">
+                                <Icons.WifiOff size={20} className="text-amber-400" />
+                                <div>
+                                    <p className="text-amber-300 font-medium">{OfflineQueue.count()} in waglys</p>
+                                    <p className="text-amber-400/70 text-sm">Sal sinkroniseer wanneer aanlyn</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        // ============================================
+        // EVALUATION SCREEN
+        // ============================================
+        const EvaluationScreen = ({ subject, isSelf, onSubmit, onBack, isLoading }) => {
+            const [currentQuestion, setCurrentQuestion] = useState(0);
+            const [answers, setAnswers] = useState({});
+            const [showConfirm, setShowConfirm] = useState(false);
+            
+            const question = QUESTIONS[currentQuestion];
+            const answer = answers[question.id] || { grade: 0, comment: '' };
+            const isLastQuestion = currentQuestion === QUESTIONS.length - 1;
+            const canProceed = answer.grade > 0;
+            
+            const setGrade = (grade) => {
+                setAnswers({ ...answers, [question.id]: { ...answer, grade } });
+            };
+            
+            const setComment = (comment) => {
+                setAnswers({ ...answers, [question.id]: { ...answer, comment } });
+            };
+            
+            const handleNext = () => {
+                if (isLastQuestion) {
+                    setShowConfirm(true);
+                } else {
+                    setCurrentQuestion(currentQuestion + 1);
+                }
+            };
+            
+            const handlePrev = () => {
+                if (currentQuestion > 0) {
+                    setCurrentQuestion(currentQuestion - 1);
+                }
+            };
+            
+            const handleSubmit = () => {
+                const evalData = {};
+                QUESTIONS.forEach(q => {
+                    const a = answers[q.id] || { grade: 0, comment: '' };
+                    evalData[`${q.id}Grade`] = a.grade;
+                    evalData[`${q.id}Comment`] = a.comment;
+                });
+                onSubmit(evalData);
+            };
+            
+            // Confirmation Modal
+            if (showConfirm) {
+                return (
+                    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center p-6 safe-top safe-bottom">
+                        <div className="bg-gradient-card rounded-3xl p-6 max-w-sm w-full animate-fade-in">
+                            <div className="text-center mb-6">
+                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-500/20 flex items-center justify-center">
+                                    <Icons.Clipboard size={32} className="text-amber-400" />
+                                </div>
+                                <h2 className="font-display text-xl text-white mb-2">Bevestig Indiening</h2>
+                                <p className="text-slate-400">
+                                    Jy is gereed om jou evaluasie vir <span className="text-white font-medium">{subject.name}</span> in te dien.
+                                </p>
+                            </div>
+                            
+                            {/* Summary */}
+                            <div className="bg-slate-800/50 rounded-xl p-4 mb-6 max-h-48 overflow-y-auto">
+                                {QUESTIONS.map((q, i) => {
+                                    const a = answers[q.id] || { grade: 0 };
+                                    return (
+                                        <div key={q.id} className="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
+                                            <span className="text-slate-400 text-sm">V{i + 1}</span>
+                                            <div className="flex gap-1">
+                                                {[1,2,3,4,5].map(n => (
+                                                    <Icons.Star
+                                                        key={n}
+                                                        size={14}
+                                                        filled={n <= a.grade}
+                                                        className={n <= a.grade ? 'text-amber-400' : 'text-slate-600'}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowConfirm(false)}
+                                    className="flex-1 py-4 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-600 transition"
+                                >
+                                    Terug
+                                </button>
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={isLoading}
+                                    className="flex-1 py-4 bg-gradient-gold text-slate-900 rounded-xl font-bold hover:opacity-90 transition disabled:opacity-50"
+                                >
+                                    {isLoading ? 'Stoor...' : 'Dien In'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+            
+            return (
+                <div className="min-h-screen min-h-[100dvh] flex flex-col safe-top safe-bottom">
+                    {/* Header */}
+                    <div className="p-4 flex items-center gap-4">
+                        <button onClick={onBack} className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition">
+                            <Icons.ArrowLeft size={24} className="text-slate-300" />
+                        </button>
+                        <div className="flex-1">
+                            <p className="text-slate-400 text-sm">Evalueer</p>
+                            <p className="text-white font-medium">
+                                {subject.name}
+                                {isSelf && <span className="text-violet-400 ml-2">(Self)</span>}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-amber-400 font-bold">{currentQuestion + 1}/7</p>
+                        </div>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="px-4 pb-4">
+                        <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-gradient-gold transition-all duration-300"
+                                style={{ width: `${((currentQuestion + 1) / 7) * 100}%` }}
+                            />
+                        </div>
+                    </div>
+                    
+                    {/* Question */}
+                    <div className="flex-1 px-4 pb-4 overflow-y-auto">
+                        <div className="animate-fade-in" key={question.id}>
+                            <h2 className="font-display text-xl text-white mb-3">{question.title}</h2>
+                            <p className="text-slate-300 mb-4 leading-relaxed">{question.description}</p>
+                            <p className="text-slate-500 text-sm mb-8 italic">{question.hint}</p>
+                            
+                            {/* Star Rating */}
+                            <div className="mb-6">
+                                <p className="text-slate-400 text-sm mb-3">Jou gradering:</p>
+                                <div className="flex justify-center gap-2">
+                                    {[1, 2, 3, 4, 5].map(n => (
+                                        <button
+                                            key={n}
+                                            onClick={() => setGrade(n)}
+                                            className={`p-3 rounded-xl transition star ${
+                                                n <= answer.grade ? 'bg-amber-500/20' : 'bg-slate-800'
+                                            }`}
+                                        >
+                                            <Icons.Star
+                                                size={32}
+                                                filled={n <= answer.grade}
+                                                className={n <= answer.grade ? 'star-filled' : 'star-empty'}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                                {answer.grade > 0 && (
+                                    <p className="text-center mt-3 text-amber-400 font-medium animate-fade-in">
+                                        {GRADE_LABELS[answer.grade]}
+                                    </p>
+                                )}
+                            </div>
+                            
+                            {/* Comment */}
+                            <div>
+                                <label className="text-slate-400 text-sm mb-2 block">
+                                    Opmerking (opsioneel):
+                                </label>
+                                <textarea
+                                    value={answer.comment}
+                                    onChange={(e) => setComment(e.target.value)}
+                                    placeholder="Voeg enige opmerkings of voorbeelde by..."
+                                    rows={3}
+                                    className="w-full p-4 bg-slate-800 border-2 border-slate-700 rounded-xl text-white placeholder-slate-500 resize-none"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Navigation */}
+                    <div className="p-4 bg-slate-900/80 backdrop-blur-sm">
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handlePrev}
+                                disabled={currentQuestion === 0}
+                                className="p-4 bg-slate-800 rounded-xl disabled:opacity-30 hover:bg-slate-700 transition"
+                            >
+                                <Icons.ArrowLeft size={24} className="text-white" />
+                            </button>
+                            <button
+                                onClick={handleNext}
+                                disabled={!canProceed}
+                                className={`flex-1 py-4 rounded-xl font-bold text-lg transition ${
+                                    canProceed
+                                        ? 'bg-gradient-gold text-slate-900 hover:opacity-90'
+                                        : 'bg-slate-800 text-slate-500'
+                                }`}
+                            >
+                                {isLastQuestion ? 'Hersien & Dien In' : 'Volgende'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // ============================================
+        // SUCCESS SCREEN
+        // ============================================
+        const SuccessScreen = ({ subject, onContinue }) => (
+            <div className="min-h-screen min-h-[100dvh] flex flex-col items-center justify-center p-6 safe-top safe-bottom">
+                <div className="text-center animate-fade-in">
+                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-success flex items-center justify-center animate-pulse-gold">
+                        <Icons.CheckCircle size={48} className="text-white" />
+                    </div>
+                    <h1 className="font-display text-3xl text-white mb-4">Dankie!</h1>
+                    <p className="text-slate-400 mb-2">Jou evaluasie vir</p>
+                    <p className="text-xl text-white font-medium mb-8">{subject?.name}</p>
+                    <p className="text-slate-400 mb-8">is suksesvol gestoor.</p>
+                    
+                    <button
+                        onClick={onContinue}
+                        className="px-8 py-4 bg-gradient-gold text-slate-900 rounded-xl font-bold text-lg hover:opacity-90 transition"
+                    >
+                        Gaan Voort
+                    </button>
+                </div>
+            </div>
+        );
+        
+        // ============================================
+        // COACH DASHBOARD
+        // ============================================
+        const CoachDashboard = ({ user, cycle, data, onSelectPerson, onLogout, onRefresh, isLoading }) => {
+            if (!data) {
+                return (
+                    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center">
+                        <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                );
+            }
+            
+            return (
+                <div className="min-h-screen min-h-[100dvh] pb-6">
+                    {/* Header */}
+                    <div className="bg-gradient-card p-6 rounded-b-3xl safe-top">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="px-2 py-1 bg-violet-600/30 text-violet-300 text-xs font-medium rounded-lg">
+                                        COACH
+                                    </span>
+                                </div>
+                                <h1 className="font-display text-2xl text-white">{user.name}</h1>
+                            </div>
+                            <button onClick={onLogout} className="p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700 transition">
+                                <Icons.LogOut size={20} className="text-slate-400" />
+                            </button>
+                        </div>
+                        
+                        {/* Cycle Info */}
+                        <div className="bg-slate-800/50 rounded-2xl p-4 mb-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Icons.Clock size={20} className="text-amber-500" />
+                                    <div>
+                                        <p className="text-white font-medium">{cycle?.name}</p>
+                                        <p className="text-slate-400 text-sm">Huidige siklus</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-2xl font-bold text-white">{data.completionRate}%</p>
+                                    <p className="text-slate-400 text-sm">voltooi</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Stats */}
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                                <p className="text-2xl font-bold text-white">{data.totalSubjects}</p>
+                                <p className="text-slate-400 text-xs">Bestuurders</p>
+                            </div>
+                            <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                                <p className="text-2xl font-bold text-emerald-400">{data.totalCompleted}</p>
+                                <p className="text-slate-400 text-xs">Voltooi</p>
+                            </div>
+                            <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                                <p className="text-2xl font-bold text-amber-400">{data.totalExpected - data.totalCompleted}</p>
+                                <p className="text-slate-400 text-xs">Uitstaande</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Refresh Button */}
+                    <div className="px-6 pt-4">
+                        <button
+                            onClick={onRefresh}
+                            disabled={isLoading}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 rounded-xl text-slate-300 hover:bg-slate-700 transition disabled:opacity-50"
+                        >
+                            <Icons.Refresh size={18} className={isLoading ? 'animate-spin' : ''} />
+                            Verfris Data
+                        </button>
+                    </div>
+                    
+                    {/* Person List */}
+                    <div className="px-6 pt-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">Individuele Resultate</h2>
+                        
+                        <div className="space-y-3">
+                            {data.personSummaries.map((person, index) => (
+                                <button
+                                    key={person.subjectId}
+                                    onClick={() => onSelectPerson(person)}
+                                    className="w-full flex items-center gap-4 p-4 bg-gradient-card rounded-2xl border-2 border-transparent hover:border-violet-500/50 transition animate-fade-in"
+                                    style={{ animationDelay: `${index * 0.05}s` }}
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-violet-600/20 flex items-center justify-center">
+                                        <Icons.User size={24} className="text-violet-400" />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="text-white font-medium">{person.subjectName}</p>
+                                        <p className="text-slate-400 text-sm">
+                                            {person.peerEvalCount} evaluasies • 
+                                            {person.hasSelfEval ? ' ✓ Self' : ' ✗ Self'}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={`text-2xl font-bold ${
+                                            person.overallAverage >= 4 ? 'text-emerald-400' :
+                                            person.overallAverage >= 3 ? 'text-amber-400' : 'text-red-400'
+                                        }`}>
+                                            {person.overallAverage || '-'}
+                                        </p>
+                                        <p className="text-slate-500 text-xs">gemiddeld</p>
+                                    </div>
+                                    <Icons.ArrowRight size={20} className="text-slate-500" />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // ============================================
+        // COACH DETAIL SCREEN
+        // ============================================
+        const CoachDetailScreen = ({ person, cycle, user, onBack }) => {
+            const [detail, setDetail] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+            
+            useEffect(() => {
+                loadDetail();
+            }, []);
+            
+            const loadDetail = async () => {
+                setIsLoading(true);
+                const result = await apiCall('getPersonDetail', {
+                    subjectId: person.subjectId,
+                    cycleId: cycle.id,
+                    requesterId: user.code
+                });
+                if (result.success) {
+                    setDetail(result.evaluations);
+                }
+                setIsLoading(false);
+            };
+            
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center">
+                        <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                );
+            }
+            
+            const peerEvals = detail?.filter(e => !e.isSelfEval) || [];
+            const selfEval = detail?.find(e => e.isSelfEval);
+            
+            return (
+                <div className="min-h-screen min-h-[100dvh] pb-6 safe-top safe-bottom">
+                    {/* Header */}
+                    <div className="p-4 flex items-center gap-4 bg-gradient-card">
+                        <button onClick={onBack} className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition">
+                            <Icons.ArrowLeft size={24} className="text-slate-300" />
+                        </button>
+                        <div className="flex-1">
+                            <p className="text-violet-400 text-sm">Coach Aansig</p>
+                            <p className="text-white font-display text-xl">{person.subjectName}</p>
+                        </div>
+                    </div>
+                    
+                    {/* Average Scores */}
+                    <div className="p-6">
+                        <h3 className="text-white font-medium mb-4">Gemiddelde per Vraag (Portuur)</h3>
+                        <div className="space-y-3">
+                            {QUESTIONS.map((q, i) => {
+                                const avg = person.averageGrades?.[q.id] || 0;
+                                const selfScore = person.selfGrades?.[q.id] || 0;
+                                const barWidth = (avg / 5) * 100;
+                                
+                                return (
+                                    <div key={q.id} className="bg-slate-800/50 rounded-xl p-4">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <p className="text-slate-300 text-sm flex-1 pr-4">{q.title}</p>
+                                            <div className="text-right">
+                                                <span className="text-amber-400 font-bold">{avg}</span>
+                                                {selfScore > 0 && (
+                                                    <span className="text-slate-500 text-sm ml-2">(Self: {selfScore})</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-gold transition-all duration-500"
+                                                style={{ width: `${barWidth}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    
+                    {/* Comments */}
+                    <div className="px-6">
+                        <h3 className="text-white font-medium mb-4">Opmerkings</h3>
+                        <div className="space-y-4">
+                            {QUESTIONS.map(q => {
+                                const comments = peerEvals
+                                    .map(e => e.comments?.[q.id])
+                                    .filter(c => c && c.trim());
+                                
+                                if (comments.length === 0) return null;
+                                
+                                return (
+                                    <div key={q.id} className="bg-slate-800/50 rounded-xl p-4">
+                                        <p className="text-amber-400 text-sm font-medium mb-2">{q.title}</p>
+                                        <div className="space-y-2">
+                                            {comments.map((comment, i) => (
+                                                <p key={i} className="text-slate-300 text-sm pl-3 border-l-2 border-slate-600">
+                                                    "{comment}"
+                                                </p>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // ============================================
+        // RENDER APP
+        // ============================================
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
