@@ -1,9 +1,9 @@
 /**
  * OOSTAGRI LEIERSKAP - Service Worker
- * Weergawe: 1.0
+ * Weergawe: 1.1
  */
 
-const CACHE_NAME = 'oostagri-leierskap-v1';
+const CACHE_NAME = 'oostagri-leierskap-v2';
 
 const CORE_ASSETS = [
     './',
@@ -156,3 +156,10 @@ async function syncOfflineEvaluations() {
         client.postMessage({ type: 'SYNC_REQUESTED' });
     });
 }
+
+// Handle messages from the main app
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+});
