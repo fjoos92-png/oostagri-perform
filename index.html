@@ -127,13 +127,46 @@
     
     <!-- Service Worker Registration -->
     <script>
+        // Service Worker Update Kennisgewing
+        window.swUpdateAvailable = false;
+        window.swRegistration = null;
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW geregistreer:', reg.scope))
+                    .then(reg => {
+                        console.log('SW geregistreer:', reg.scope);
+                        window.swRegistration = reg;
+
+                        // Kyk vir updates
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            if (newWorker) {
+                                newWorker.addEventListener('statechange', () => {
+                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                        // Nuwe weergawe beskikbaar
+                                        window.swUpdateAvailable = true;
+                                        window.dispatchEvent(new CustomEvent('swUpdateAvailable'));
+                                    }
+                                });
+                            }
+                        });
+                    })
                     .catch(err => console.log('SW fout:', err));
+
+                // Luister vir kontroleerder veranderinge
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    window.location.reload();
+                });
             });
         }
+
+        // Funksie om update toe te pas
+        window.applySwUpdate = function() {
+            if (window.swRegistration && window.swRegistration.waiting) {
+                window.swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+        };
     </script>
     
     <!-- Offline Queue -->
@@ -314,13 +347,13 @@
     
     <!-- Main React App -->
     <script type="text/babel">
-        const { useState, useEffect, useCallback, useRef } = React;
-        
+        const { useState, useEffect, useCallback, useRef, Component } = React;
+
         // ============================================
         // KONFIGURASIE
         // ============================================
         const API_URL = 'https://script.google.com/macros/s/AKfycbyh9zVUe46i5ZX_sXBiDmKv3lHnGSH1VWwpgzJgdLYKL9XrKd5edHUWpWAbVGX_B1jF/exec';
-        const APP_VERSION = '1.0.0';
+        const APP_VERSION = '1.1.0';
         const CACHE_KEY = 'leierskap_cache';
         const USER_KEY = 'leierskap_user';
         
@@ -377,7 +410,69 @@
             4: 'Oorskry vereistes',
             5: 'Uitsonderlik'
         };
-        
+
+        // ============================================
+        // ERROR BOUNDARY
+        // ============================================
+        class ErrorBoundary extends Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null };
+            }
+
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error };
+            }
+
+            componentDidCatch(error, errorInfo) {
+                console.error('App fout:', error, errorInfo);
+            }
+
+            handleReload = () => {
+                window.location.reload();
+            };
+
+            handleClearAndReload = () => {
+                localStorage.removeItem(USER_KEY);
+                localStorage.removeItem(CACHE_KEY);
+                window.location.reload();
+            };
+
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="min-h-screen min-h-[100dvh] flex flex-col items-center justify-center p-6 bg-gradient-dark safe-top safe-bottom">
+                            <div className="text-center max-w-sm">
+                                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-red-500/20 flex items-center justify-center">
+                                    <Icons.AlertCircle size={40} className="text-red-400" />
+                                </div>
+                                <h1 className="font-display text-2xl text-white mb-4">Iets het fout gegaan</h1>
+                                <p className="text-slate-400 mb-8">
+                                    Die app het 'n onverwagte fout teëgekom. Probeer om die bladsy te herlaai.
+                                </p>
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={this.handleReload}
+                                        className="w-full py-4 bg-gradient-gold text-slate-900 rounded-xl font-bold hover:opacity-90 transition"
+                                    >
+                                        Herlaai Bladsy
+                                    </button>
+                                    <button
+                                        onClick={this.handleClearAndReload}
+                                        className="w-full py-3 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition text-sm"
+                                    >
+                                        Maak data skoon en herlaai
+                                    </button>
+                                </div>
+                                <p className="text-slate-500 text-sm mt-6">v{APP_VERSION}</p>
+                            </div>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
         // ============================================
         // API HELPERS
         // ============================================
@@ -423,6 +518,9 @@
             // Coach state
             const [coachData, setCoachData] = useState(null);
             const [selectedPersonDetail, setSelectedPersonDetail] = useState(null);
+
+            // Service Worker update state
+            const [swUpdateAvailable, setSwUpdateAvailable] = useState(window.swUpdateAvailable || false);
             
             // Online/Offline tracking
             useEffect(() => {
@@ -431,15 +529,29 @@
                     syncOfflineQueue();
                 };
                 const handleOffline = () => setIsOnline(false);
-                
+
                 window.addEventListener('online', handleOnline);
                 window.addEventListener('offline', handleOffline);
-                
+
                 return () => {
                     window.removeEventListener('online', handleOnline);
                     window.removeEventListener('offline', handleOffline);
                 };
             }, []);
+
+            // Service Worker update listener
+            useEffect(() => {
+                const handleSwUpdate = () => setSwUpdateAvailable(true);
+                window.addEventListener('swUpdateAvailable', handleSwUpdate);
+                return () => window.removeEventListener('swUpdateAvailable', handleSwUpdate);
+            }, []);
+
+            // Handle SW update
+            const handleSwUpdate = () => {
+                if (window.applySwUpdate) {
+                    window.applySwUpdate();
+                }
+            };
             
             // Auto-login check
             useEffect(() => {
@@ -602,7 +714,25 @@
                             Geen internetverbinding — werk vanlyn
                         </div>
                     )}
-                    
+
+                    {/* SW Update Banner */}
+                    {swUpdateAvailable && (
+                        <div className="fixed bottom-0 left-0 right-0 bg-emerald-600 text-white p-4 z-50 safe-bottom animate-fade-in">
+                            <div className="flex items-center justify-between max-w-lg mx-auto">
+                                <div className="flex items-center gap-3">
+                                    <Icons.Refresh size={20} />
+                                    <span className="text-sm font-medium">Nuwe weergawe beskikbaar!</span>
+                                </div>
+                                <button
+                                    onClick={handleSwUpdate}
+                                    className="px-4 py-2 bg-white text-emerald-700 rounded-lg font-bold text-sm hover:bg-emerald-50 transition"
+                                >
+                                    Opdateer
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Toast */}
                     {toast && (
                         <div className={`fixed top-4 left-4 right-4 p-4 rounded-xl text-white text-center z-50 animate-fade-in ${
@@ -1403,7 +1533,11 @@
         // ============================================
         // RENDER APP
         // ============================================
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
     </script>
 </body>
 </html>
