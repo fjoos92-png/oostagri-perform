@@ -1184,39 +1184,39 @@
             return (
                 <div className="min-h-screen min-h-[100dvh] pb-6">
                     {/* Header */}
-                    <div className="bg-gradient-card p-6 rounded-b-3xl safe-top">
-                        <div className="flex items-center justify-between mb-6">
+                    <div className="bg-gradient-card p-6 pb-8 rounded-b-3xl safe-top">
+                        <div className="flex items-center justify-between mb-8">
                             <div>
-                                <p className="text-slate-400 text-sm">Welkom terug</p>
-                                <h1 className="font-display text-2xl text-white">{user.name}</h1>
+                                <p className="text-slate-400 text-base mb-1">Welkom terug</p>
+                                <h1 className="font-display text-3xl text-white">{user.name}</h1>
                             </div>
-                            <button onClick={onLogout} className="p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700 transition">
-                                <Icons.LogOut size={20} className="text-slate-400" />
+                            <button onClick={onLogout} className="p-4 rounded-xl bg-slate-800/50 hover:bg-slate-700 transition">
+                                <Icons.LogOut size={24} className="text-slate-400" />
                             </button>
                         </div>
-                        
+
                         {/* Cycle Info */}
-                        <div className="bg-slate-800/50 rounded-2xl p-4 mb-4">
-                            <div className="flex items-center gap-3">
-                                <Icons.Clock size={20} className="text-amber-500" />
+                        <div className="bg-slate-800/50 rounded-2xl p-5 mb-6">
+                            <div className="flex items-center gap-4">
+                                <Icons.Clock size={28} className="text-amber-500" />
                                 <div>
-                                    <p className="text-white font-medium">{cycle?.name}</p>
-                                    <p className="text-slate-400 text-sm">Huidige siklus</p>
+                                    <p className="text-white font-semibold text-xl">{cycle?.name}</p>
+                                    <p className="text-slate-400 text-base">Huidige siklus</p>
                                 </div>
                             </div>
                         </div>
-                        
+
                         {/* Progress Ring */}
-                        <div className="flex items-center gap-6">
-                            <div className="relative w-28 h-28">
-                                <svg className="w-28 h-28 progress-ring">
+                        <div className="flex items-center gap-8">
+                            <div className="relative w-32 h-32">
+                                <svg className="w-32 h-32 progress-ring">
                                     <circle
-                                        cx="56" cy="56" r={radius}
-                                        fill="none" stroke="#334155" strokeWidth="8"
+                                        cx="64" cy="64" r={radius}
+                                        fill="none" stroke="#334155" strokeWidth="10"
                                     />
                                     <circle
-                                        cx="56" cy="56" r={radius}
-                                        fill="none" stroke="#f59e0b" strokeWidth="8"
+                                        cx="64" cy="64" r={radius}
+                                        fill="none" stroke="#f59e0b" strokeWidth="10"
                                         strokeLinecap="round"
                                         strokeDasharray={circumference}
                                         strokeDashoffset={offset}
@@ -1224,33 +1224,33 @@
                                     />
                                 </svg>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-2xl font-bold text-white">{progress.percentage}%</span>
+                                    <span className="text-3xl font-bold text-white">{progress.percentage}%</span>
                                 </div>
                             </div>
                             <div>
-                                <p className="text-3xl font-bold text-white">{progress.done}/{progress.total}</p>
-                                <p className="text-slate-400">Evaluasies voltooi</p>
+                                <p className="text-4xl font-bold text-white">{progress.done}/{progress.total}</p>
+                                <p className="text-slate-400 text-lg">Evaluasies voltooi</p>
                                 {progress.done === progress.total && progress.total > 0 && (
-                                    <p className="text-emerald-400 text-sm mt-1">✓ Alles klaar!</p>
+                                    <p className="text-emerald-400 text-base mt-2">✓ Alles klaar!</p>
                                 )}
                             </div>
                         </div>
                     </div>
                     
                     {/* Action Buttons */}
-                    <div className="px-6 pt-4 flex gap-3">
+                    <div className="px-6 pt-6 flex gap-3">
                         <button
                             onClick={onRefresh}
                             disabled={isLoading}
-                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-800 rounded-xl text-slate-300 hover:bg-slate-700 transition disabled:opacity-50"
+                            className="flex-1 flex items-center justify-center gap-2 py-4 bg-slate-800 rounded-xl text-slate-300 text-lg font-medium hover:bg-slate-700 transition disabled:opacity-50"
                         >
-                            <Icons.Refresh size={18} className={isLoading ? 'animate-spin' : ''} />
+                            <Icons.Refresh size={22} className={isLoading ? 'animate-spin' : ''} />
                             Verfris
                         </button>
                         {historyCount > 0 && (
                             <button
                                 onClick={onViewHistory}
-                                className="flex-1 flex items-center justify-center gap-2 py-3 bg-violet-600/20 border border-violet-600/30 rounded-xl text-violet-300 hover:bg-violet-600/30 transition"
+                                className="flex-1 flex items-center justify-center gap-2 py-4 bg-violet-600/20 border border-violet-600/30 rounded-xl text-violet-300 text-lg font-medium hover:bg-violet-600/30 transition"
                             >
                                 <Icons.Clipboard size={18} />
                                 My Evaluasies ({historyCount})
@@ -1259,46 +1259,46 @@
                     </div>
 
                     {/* Subject List */}
-                    <div className="px-6 pt-6">
-                        <h2 className="text-lg font-semibold text-white mb-4">Evalueer Spanmaats</h2>
-                        
-                        <div className="space-y-3">
+                    <div className="px-6 pt-8">
+                        <h2 className="text-xl font-semibold text-white mb-5">Evalueer Spanmaats</h2>
+
+                        <div className="space-y-4">
                             {subjects.map((subject, index) => {
                                 const isCompleted = completedSubjects.includes(subject.id);
                                 const isSelf = subject.id === user.code;
-                                
+
                                 return (
                                     <button
                                         key={subject.id}
                                         onClick={() => !isCompleted && onStartEvaluation(subject)}
                                         disabled={isCompleted}
-                                        className={`w-full flex items-center gap-4 p-4 rounded-2xl transition animate-fade-in ${
+                                        className={`w-full flex items-center gap-4 p-5 rounded-2xl transition animate-fade-in ${
                                             isCompleted
                                                 ? 'bg-slate-800/30 opacity-60'
                                                 : 'bg-gradient-card hover:border-amber-500/50 border-2 border-transparent'
                                         }`}
                                         style={{ animationDelay: `${index * 0.05}s` }}
                                     >
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
                                             isSelf ? 'bg-violet-600/20' : 'bg-amber-500/20'
                                         }`}>
                                             {isCompleted ? (
-                                                <Icons.CheckCircle size={24} className="text-emerald-400" />
+                                                <Icons.CheckCircle size={28} className="text-emerald-400" />
                                             ) : (
-                                                <Icons.User size={24} className={isSelf ? 'text-violet-400' : 'text-amber-400'} />
+                                                <Icons.User size={28} className={isSelf ? 'text-violet-400' : 'text-amber-400'} />
                                             )}
                                         </div>
                                         <div className="flex-1 text-left">
-                                            <p className="text-white font-medium">
+                                            <p className="text-white font-semibold text-lg">
                                                 {subject.name}
-                                                {isSelf && <span className="text-violet-400 text-sm ml-2">(Self)</span>}
+                                                {isSelf && <span className="text-violet-400 text-base ml-2">(Self)</span>}
                                             </p>
-                                            <p className="text-slate-400 text-sm">
+                                            <p className="text-slate-400 text-base">
                                                 {isCompleted ? 'Voltooi' : 'Tik om te evalueer'}
                                             </p>
                                         </div>
                                         {!isCompleted && (
-                                            <Icons.ArrowRight size={20} className="text-slate-500" />
+                                            <Icons.ArrowRight size={24} className="text-slate-500" />
                                         )}
                                     </button>
                                 );
