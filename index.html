@@ -363,10 +363,11 @@
         // ============================================
         // KONFIGURASIE
         // ============================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyqlX4IwQpQPRKb1qq5kj0O64PTTm41rtDrI5Qx_pRvFoUYMpbeP0k9G-A0UUxsxFMj/exec';
-        const APP_VERSION = '1.2.0';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx2pfmwarOKuA4q6klod03k7-mL0oB1Z0Eeq0wrQn84h24nRPUBh2jbp2jwosbDmBEO/exec';
+        const APP_VERSION = '1.3.0';
         const CACHE_KEY = 'leierskap_cache';
         const USER_KEY = 'leierskap_user';
+        const DASHBOARD_CACHE_KEY = 'leierskap_dashboard_cache';
         
         // Die 7 evaluasievrae
         const QUESTIONS = [
@@ -795,119 +796,114 @@
                 }
             };
             
-            // Load initial data - user parameter is optional, uses currentUser if not provided
-            const loadInitialData = async (user = null) => {
+            // Load and apply cached dashboard data
+            const loadCachedData = (userCode) => {
+                try {
+                    const cacheKey = `${DASHBOARD_CACHE_KEY}_${userCode}`;
+                    const cached = localStorage.getItem(cacheKey);
+                    if (cached) {
+                        const data = JSON.parse(cached);
+                        // Check if cache is less than 24 hours old
+                        if (data.timestamp && (Date.now() - data.timestamp) < 24 * 60 * 60 * 1000) {
+                            return data;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Cache lees fout:', e);
+                }
+                return null;
+            };
+
+            // Save dashboard data to cache
+            const saveCacheData = (userCode, data) => {
+                try {
+                    const cacheKey = `${DASHBOARD_CACHE_KEY}_${userCode}`;
+                    localStorage.setItem(cacheKey, JSON.stringify({
+                        ...data,
+                        timestamp: Date.now()
+                    }));
+                } catch (e) {
+                    console.log('Cache stoor fout:', e);
+                }
+            };
+
+            // Apply data to state
+            const applyDashboardData = (data) => {
+                if (data.cycle) setCurrentCycle(data.cycle);
+                if (data.currentMonth) setCurrentMonth(data.currentMonth);
+                if (data.subjects) setSubjects(data.subjects);
+                if (data.completedSubjects) setCompletedSubjects(data.completedSubjects);
+                if (data.myEvaluations) setMyEvaluations(data.myEvaluations);
+                if (data.subordinates) setSubordinates(data.subordinates);
+                if (data.completedSubordinates) setCompletedSubordinates(data.completedSubordinates);
+                if (data.myMelkstalEvaluations) setMyMelkstalEvaluations(data.myMelkstalEvaluations);
+                if (data.coachData) setCoachData(data.coachData);
+            };
+
+            // Load initial data - optimized with caching
+            const loadInitialData = async (user = null, forceRefresh = false) => {
                 const activeUser = user || currentUser;
                 if (!activeUser) {
                     setError('Geen gebruiker aangemeld');
                     return;
                 }
 
+                // Step 1: Load cached data immediately (instant UI)
+                const cachedData = loadCachedData(activeUser.code);
+                if (cachedData && !forceRefresh) {
+                    applyDashboardData(cachedData);
+                    setScreen('dashboard');
+                    // Continue to fetch fresh data in background
+                }
+
                 setIsLoading(true);
                 try {
-                    // Get current cycle first (needed for other calls)
-                    const cycleResult = await apiCall('getCurrentCycle');
-                    if (cycleResult.success) {
-                        setCurrentCycle(cycleResult.cycle);
+                    // Step 2: Fetch fresh data with single API call
+                    const now = new Date();
+                    const monthId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-                        // Get current month for subordinate evaluations
-                        const now = new Date();
-                        const monthId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                        setCurrentMonth(monthId);
+                    const result = await apiCall('getInitialData', {
+                        userId: activeUser.code,
+                        role: activeUser.role,
+                        monthId: monthId
+                    });
 
-                        // Run remaining API calls in parallel for faster loading
-                        const parallelCalls = [
-                            apiCall('getSubjects', { userId: activeUser.code }),
-                            apiCall('getEvaluationStatus', {
-                                userId: activeUser.code,
-                                cycleId: cycleResult.cycle.id
-                            }),
-                            // Get user's own evaluations for history
-                            apiCall('getUserEvaluations', {
-                                userId: activeUser.code,
-                                cycleId: cycleResult.cycle.id
-                            }),
-                            // Get subordinates (middle management)
-                            apiCall('getSubordinates', { supervisorId: activeUser.code }),
-                            // Get subordinate evaluation status for current month
-                            apiCall('getMelkstalStatus', {
-                                supervisorId: activeUser.code,
-                                monthId: monthId
-                            }),
-                            // Get user's melkstal evaluations for history
-                            apiCall('getUserMelkstalEvaluations', {
-                                userId: activeUser.code
-                            })
-                        ];
+                    if (result.success) {
+                        // Build data object
+                        const freshData = {
+                            cycle: result.cycle,
+                            currentMonth: monthId,
+                            subjects: result.subjects || [],
+                            completedSubjects: result.completedSubjects || [],
+                            myEvaluations: result.myEvaluations || [],
+                            subordinates: result.subordinates || [],
+                            completedSubordinates: result.completedSubordinates || [],
+                            myMelkstalEvaluations: result.myMelkstalEvaluations || [],
+                            coachData: result.coachData || null
+                        };
 
-                        // Add coach summary call if user is coach
-                        if (activeUser.role === 'coach') {
-                            parallelCalls.push(
-                                apiCall('getCycleSummary', {
-                                    cycleId: cycleResult.cycle.id,
-                                    requesterId: activeUser.code
-                                })
-                            );
-                        }
-
-                        // Execute all calls in parallel
-                        const results = await Promise.all(parallelCalls);
-
-                        // Process subjects result
-                        const subjectsResult = results[0];
-                        if (subjectsResult.success) {
-                            setSubjects(subjectsResult.subjects);
-                        }
-
-                        // Process status result
-                        const statusResult = results[1];
-                        if (statusResult.success) {
-                            setCompletedSubjects(statusResult.completedSubjects);
-                        }
-
-                        // Process user evaluations for history
-                        const evalsResult = results[2];
-                        if (evalsResult.success) {
-                            setMyEvaluations(evalsResult.evaluations || []);
-                        }
-
-                        // Process subordinates (middle management)
-                        const subordinatesResult = results[3];
-                        if (subordinatesResult.success) {
-                            setSubordinates(subordinatesResult.subordinates || []);
-                        }
-
-                        // Process melkstal status
-                        const melkstalStatusResult = results[4];
-                        if (melkstalStatusResult.success) {
-                            setCompletedSubordinates(melkstalStatusResult.completedSubordinates || []);
-                        }
-
-                        // Process melkstal evaluations history
-                        const melkstalEvalsResult = results[5];
-                        if (melkstalEvalsResult.success) {
-                            setMyMelkstalEvaluations(melkstalEvalsResult.evaluations || []);
-                        }
-
-                        // Process coach summary if applicable (now index 6)
-                        if (activeUser.role === 'coach' && results[6]) {
-                            const summaryResult = results[6];
-                            if (summaryResult.success) {
-                                setCoachData(summaryResult.summary);
-                            }
-                        }
-
+                        // Step 3: Apply fresh data and cache it
+                        applyDashboardData(freshData);
+                        saveCacheData(activeUser.code, freshData);
                         setScreen('dashboard');
-                    } else if (cycleResult.noCycle) {
+                    } else if (result.noCycle) {
                         setError('Geen oop evaluasiesiklus');
                         setScreen('noCycle');
                     } else {
-                        console.error('Siklus fout:', cycleResult);
-                        setError(cycleResult.error || 'Kon nie siklus laai nie');
+                        // If API fails but we have cache, stay on dashboard
+                        if (cachedData) {
+                            console.log('API fout, gebruik cached data');
+                        } else {
+                            console.error('Data fout:', result);
+                            setError(result.error || 'Kon nie data laai nie');
+                        }
                     }
                 } catch (e) {
                     console.error('loadInitialData fout:', e);
-                    setError('Kon nie data laai nie: ' + e.message);
+                    // If error but we have cache, stay on dashboard
+                    if (!cachedData) {
+                        setError('Kon nie data laai nie: ' + e.message);
+                    }
                 } finally {
                     setIsLoading(false);
                 }
