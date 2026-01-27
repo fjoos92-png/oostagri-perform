@@ -3,7 +3,7 @@
  * Weergawe: 1.1.0
  */
 
-const CACHE_NAME = 'oostagri-leierskap-v3';
+const CACHE_NAME = 'oostagri-leierskap-v4';
 
 const CORE_ASSETS = [
     './',
@@ -11,12 +11,11 @@ const CORE_ASSETS = [
     './manifest.json'
 ];
 
+// Tailwind CDN kan nie gekas word nie weens CORS - slegs React en Babel
 const CDN_ASSETS = [
-    'https://cdn.tailwindcss.com',
     'https://unpkg.com/react@18/umd/react.production.min.js',
     'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
-    'https://unpkg.com/@babel/standalone/babel.min.js',
-    'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap'
+    'https://unpkg.com/@babel/standalone/babel.min.js'
 ];
 
 // Install: Cache core assets
