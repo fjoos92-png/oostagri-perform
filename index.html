@@ -364,7 +364,7 @@
         // KONFIGURASIE
         // ============================================
         const API_URL = 'https://script.google.com/macros/s/AKfycbzmOzk6jqFah6eowxjkLqy4tS37xj3sBcXp5bxLoi73T6G31-YVWVf81BLFQHHUGs8F/exec';
-        const APP_VERSION = '1.1.0';
+        const APP_VERSION = '1.2.0';
         const CACHE_KEY = 'leierskap_cache';
         const USER_KEY = 'leierskap_user';
         
@@ -531,6 +531,10 @@
             const [coachData, setCoachData] = useState(null);
             const [selectedPersonDetail, setSelectedPersonDetail] = useState(null);
 
+            // Evaluation history state
+            const [myEvaluations, setMyEvaluations] = useState([]);
+            const [selectedEvaluationForEdit, setSelectedEvaluationForEdit] = useState(null);
+
             // Service Worker update state
             const [swUpdateAvailable, setSwUpdateAvailable] = useState(window.swUpdateAvailable || false);
             
@@ -601,32 +605,59 @@
 
                 setIsLoading(true);
                 try {
-                    // Get current cycle
+                    // Get current cycle first (needed for other calls)
                     const cycleResult = await apiCall('getCurrentCycle');
                     if (cycleResult.success) {
                         setCurrentCycle(cycleResult.cycle);
 
-                        // Get subjects
-                        const subjectsResult = await apiCall('getSubjects', { userId: activeUser.code });
+                        // Run remaining API calls in parallel for faster loading
+                        const parallelCalls = [
+                            apiCall('getSubjects', { userId: activeUser.code }),
+                            apiCall('getEvaluationStatus', {
+                                userId: activeUser.code,
+                                cycleId: cycleResult.cycle.id
+                            }),
+                            // Get user's own evaluations for history
+                            apiCall('getUserEvaluations', {
+                                userId: activeUser.code,
+                                cycleId: cycleResult.cycle.id
+                            })
+                        ];
+
+                        // Add coach summary call if user is coach
+                        if (activeUser.role === 'coach') {
+                            parallelCalls.push(
+                                apiCall('getCycleSummary', {
+                                    cycleId: cycleResult.cycle.id,
+                                    requesterId: activeUser.code
+                                })
+                            );
+                        }
+
+                        // Execute all calls in parallel
+                        const results = await Promise.all(parallelCalls);
+
+                        // Process subjects result
+                        const subjectsResult = results[0];
                         if (subjectsResult.success) {
                             setSubjects(subjectsResult.subjects);
                         }
 
-                        // Get evaluation status
-                        const statusResult = await apiCall('getEvaluationStatus', {
-                            userId: activeUser.code,
-                            cycleId: cycleResult.cycle.id
-                        });
+                        // Process status result
+                        const statusResult = results[1];
                         if (statusResult.success) {
                             setCompletedSubjects(statusResult.completedSubjects);
                         }
 
-                        // If coach, load summary
-                        if (activeUser.role === 'coach') {
-                            const summaryResult = await apiCall('getCycleSummary', {
-                                cycleId: cycleResult.cycle.id,
-                                requesterId: activeUser.code
-                            });
+                        // Process user evaluations for history
+                        const evalsResult = results[2];
+                        if (evalsResult.success) {
+                            setMyEvaluations(evalsResult.evaluations || []);
+                        }
+
+                        // Process coach summary if applicable (now index 3)
+                        if (activeUser.role === 'coach' && results[3]) {
+                            const summaryResult = results[3];
                             if (summaryResult.success) {
                                 setCoachData(summaryResult.summary);
                             }
@@ -680,7 +711,7 @@
             // Submit evaluation
             const handleSubmitEvaluation = async (evalData) => {
                 setIsLoading(true);
-                
+
                 const fullData = {
                     ...evalData,
                     cycleId: currentCycle.id,
@@ -689,12 +720,20 @@
                     subjectCode: selectedSubject.id,
                     subjectName: selectedSubject.name
                 };
-                
+
                 if (isOnline) {
                     const result = await apiCall('submitEvaluation', { data: fullData });
                     if (result.success) {
                         setCompletedSubjects([...completedSubjects, selectedSubject.id]);
                         showToast('Evaluasie suksesvol gestoor!', 'success');
+                        // Refresh evaluations list
+                        const evalsResult = await apiCall('getUserEvaluations', {
+                            userId: currentUser.code,
+                            cycleId: currentCycle.id
+                        });
+                        if (evalsResult.success) {
+                            setMyEvaluations(evalsResult.evaluations || []);
+                        }
                         setScreen('success');
                     } else {
                         showToast(result.error || 'Kon nie stoor nie', 'error');
@@ -705,7 +744,43 @@
                     showToast('Gestoor vir later sinkronisering', 'warning');
                     setScreen('success');
                 }
-                
+
+                setIsLoading(false);
+            };
+
+            // Update existing evaluation
+            const handleUpdateEvaluation = async (evalData) => {
+                setIsLoading(true);
+
+                const fullData = {
+                    ...evalData,
+                    evaluationId: selectedEvaluationForEdit.id,
+                    cycleId: currentCycle.id,
+                    evaluatorCode: currentUser.code,
+                    subjectCode: selectedSubject.id
+                };
+
+                if (isOnline) {
+                    const result = await apiCall('updateEvaluation', { data: fullData });
+                    if (result.success) {
+                        showToast('Evaluasie suksesvol opgedateer!', 'success');
+                        // Refresh evaluations list
+                        const evalsResult = await apiCall('getUserEvaluations', {
+                            userId: currentUser.code,
+                            cycleId: currentCycle.id
+                        });
+                        if (evalsResult.success) {
+                            setMyEvaluations(evalsResult.evaluations || []);
+                        }
+                        setSelectedEvaluationForEdit(null);
+                        setScreen('myEvaluations');
+                    } else {
+                        showToast(result.error || 'Kon nie opdateer nie', 'error');
+                    }
+                } else {
+                    showToast('Jy moet aanlyn wees om te wysig', 'error');
+                }
+
                 setIsLoading(false);
             };
             
@@ -803,6 +878,8 @@
                             onLogout={handleLogout}
                             onRefresh={loadInitialData}
                             isLoading={isLoading}
+                            onViewHistory={() => setScreen('myEvaluations')}
+                            historyCount={myEvaluations.length}
                         />
                     )}
                     
@@ -847,6 +924,47 @@
                                 setSelectedPersonDetail(null);
                                 setScreen('dashboard');
                             }}
+                        />
+                    )}
+
+                    {screen === 'myEvaluations' && (
+                        <MyEvaluationsScreen
+                            evaluations={myEvaluations}
+                            onBack={() => setScreen('dashboard')}
+                            onEdit={(evaluation) => {
+                                setSelectedEvaluationForEdit(evaluation);
+                                setSelectedSubject({ id: evaluation.subjectId, name: evaluation.subjectName });
+                                setScreen('editEvaluation');
+                            }}
+                            onView={(evaluation) => {
+                                setSelectedEvaluationForEdit(evaluation);
+                                setScreen('viewEvaluation');
+                            }}
+                        />
+                    )}
+
+                    {screen === 'viewEvaluation' && selectedEvaluationForEdit && (
+                        <ViewEvaluationScreen
+                            evaluation={selectedEvaluationForEdit}
+                            onBack={() => {
+                                setSelectedEvaluationForEdit(null);
+                                setScreen('myEvaluations');
+                            }}
+                        />
+                    )}
+
+                    {screen === 'editEvaluation' && selectedEvaluationForEdit && (
+                        <EvaluationScreen
+                            subject={selectedSubject}
+                            isSelf={selectedSubject?.id === currentUser?.code}
+                            onSubmit={handleUpdateEvaluation}
+                            onBack={() => {
+                                setSelectedEvaluationForEdit(null);
+                                setScreen('myEvaluations');
+                            }}
+                            isLoading={isLoading}
+                            editMode={true}
+                            existingData={selectedEvaluationForEdit}
                         />
                     )}
                 </div>
@@ -1057,7 +1175,7 @@
         // ============================================
         const DashboardScreen = ({
             user, cycle, subjects, completedSubjects, progress,
-            onStartEvaluation, onLogout, onRefresh, isLoading
+            onStartEvaluation, onLogout, onRefresh, isLoading, onViewHistory, historyCount
         }) => {
             const radius = 45;
             const circumference = 2 * Math.PI * radius;
@@ -1119,18 +1237,27 @@
                         </div>
                     </div>
                     
-                    {/* Refresh Button */}
-                    <div className="px-6 pt-4">
+                    {/* Action Buttons */}
+                    <div className="px-6 pt-4 flex gap-3">
                         <button
                             onClick={onRefresh}
                             disabled={isLoading}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 rounded-xl text-slate-300 hover:bg-slate-700 transition disabled:opacity-50"
+                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-800 rounded-xl text-slate-300 hover:bg-slate-700 transition disabled:opacity-50"
                         >
                             <Icons.Refresh size={18} className={isLoading ? 'animate-spin' : ''} />
                             Verfris
                         </button>
+                        {historyCount > 0 && (
+                            <button
+                                onClick={onViewHistory}
+                                className="flex-1 flex items-center justify-center gap-2 py-3 bg-violet-600/20 border border-violet-600/30 rounded-xl text-violet-300 hover:bg-violet-600/30 transition"
+                            >
+                                <Icons.Clipboard size={18} />
+                                My Evaluasies ({historyCount})
+                            </button>
+                        )}
                     </div>
-                    
+
                     {/* Subject List */}
                     <div className="px-6 pt-6">
                         <h2 className="text-lg font-semibold text-white mb-4">Evalueer Spanmaats</h2>
@@ -1198,9 +1325,22 @@
         // ============================================
         // EVALUATION SCREEN
         // ============================================
-        const EvaluationScreen = ({ subject, isSelf, onSubmit, onBack, isLoading }) => {
+        const EvaluationScreen = ({ subject, isSelf, onSubmit, onBack, isLoading, editMode = false, existingData = null }) => {
             const [currentQuestion, setCurrentQuestion] = useState(0);
-            const [answers, setAnswers] = useState({});
+            const [answers, setAnswers] = useState(() => {
+                // If in edit mode, pre-populate with existing data
+                if (editMode && existingData) {
+                    const initialAnswers = {};
+                    QUESTIONS.forEach(q => {
+                        initialAnswers[q.id] = {
+                            grade: existingData.grades?.[q.id] || 0,
+                            comment: existingData.comments?.[q.id] || ''
+                        };
+                    });
+                    return initialAnswers;
+                }
+                return {};
+            });
             const [showConfirm, setShowConfirm] = useState(false);
             
             const question = QUESTIONS[currentQuestion];
@@ -1249,9 +1389,14 @@
                                 <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-500/20 flex items-center justify-center">
                                     <Icons.Clipboard size={32} className="text-amber-400" />
                                 </div>
-                                <h2 className="font-display text-xl text-white mb-2">Bevestig Indiening</h2>
+                                <h2 className="font-display text-xl text-white mb-2">
+                                    {editMode ? 'Bevestig Wysiging' : 'Bevestig Indiening'}
+                                </h2>
                                 <p className="text-slate-400">
-                                    Jy is gereed om jou evaluasie vir <span className="text-white font-medium">{subject.name}</span> in te dien.
+                                    {editMode
+                                        ? <>Jy is gereed om jou gewysigde evaluasie vir <span className="text-white font-medium">{subject.name}</span> te stoor.</>
+                                        : <>Jy is gereed om jou evaluasie vir <span className="text-white font-medium">{subject.name}</span> in te dien.</>
+                                    }
                                 </p>
                             </div>
                             
@@ -1289,7 +1434,7 @@
                                     disabled={isLoading}
                                     className="flex-1 py-4 bg-gradient-gold text-slate-900 rounded-xl font-bold hover:opacity-90 transition disabled:opacity-50"
                                 >
-                                    {isLoading ? 'Stoor...' : 'Dien In'}
+                                    {isLoading ? 'Stoor...' : (editMode ? 'Stoor Wysigings' : 'Dien In')}
                                 </button>
                             </div>
                         </div>
@@ -1305,7 +1450,9 @@
                             <Icons.ArrowLeft size={24} className="text-slate-300" />
                         </button>
                         <div className="flex-1">
-                            <p className="text-slate-400 text-sm">Evalueer</p>
+                            <p className="text-slate-400 text-sm">
+                                {editMode ? 'Wysig Evaluasie' : 'Evalueer'}
+                            </p>
                             <p className="text-white font-medium">
                                 {subject.name}
                                 {isSelf && <span className="text-violet-400 ml-2">(Self)</span>}
@@ -1313,6 +1460,9 @@
                         </div>
                         <div className="text-right">
                             <p className="text-amber-400 font-bold">{currentQuestion + 1}/7</p>
+                            {editMode && (
+                                <p className="text-violet-400 text-xs">wysig</p>
+                            )}
                         </div>
                     </div>
                     
@@ -1543,6 +1693,223 @@
             );
         };
         
+        // ============================================
+        // MY EVALUATIONS SCREEN (History)
+        // ============================================
+        const MyEvaluationsScreen = ({ evaluations, onBack, onEdit, onView }) => {
+            // Helper to check if evaluation can be edited (within 24 hours)
+            const canEdit = (evaluation) => {
+                if (!evaluation.submittedAt) return false;
+                const submittedTime = new Date(evaluation.submittedAt).getTime();
+                const now = Date.now();
+                const hoursDiff = (now - submittedTime) / (1000 * 60 * 60);
+                return hoursDiff <= 24;
+            };
+
+            // Format date for display
+            const formatDate = (dateStr) => {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('af-ZA', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            };
+
+            // Calculate time remaining for edit
+            const getTimeRemaining = (evaluation) => {
+                if (!evaluation.submittedAt) return null;
+                const submittedTime = new Date(evaluation.submittedAt).getTime();
+                const deadline = submittedTime + (24 * 60 * 60 * 1000);
+                const remaining = deadline - Date.now();
+                if (remaining <= 0) return null;
+                const hours = Math.floor(remaining / (1000 * 60 * 60));
+                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                return `${hours}u ${minutes}m`;
+            };
+
+            return (
+                <div className="min-h-screen min-h-[100dvh] pb-6 safe-top safe-bottom">
+                    {/* Header */}
+                    <div className="p-4 flex items-center gap-4 bg-gradient-card">
+                        <button onClick={onBack} className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition">
+                            <Icons.ArrowLeft size={24} className="text-slate-300" />
+                        </button>
+                        <div className="flex-1">
+                            <h1 className="text-white font-display text-xl">My Evaluasies</h1>
+                            <p className="text-slate-400 text-sm">Geskiedenis van jou voltooide evaluasies</p>
+                        </div>
+                    </div>
+
+                    {/* Info Banner */}
+                    <div className="mx-6 mt-4 p-4 bg-amber-600/20 border border-amber-600/30 rounded-xl">
+                        <div className="flex items-start gap-3">
+                            <Icons.Clock size={20} className="text-amber-400 mt-0.5" />
+                            <p className="text-amber-200 text-sm">
+                                Jy kan evaluasies binne 24 uur na indiening wysig.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Evaluations List */}
+                    <div className="px-6 pt-6">
+                        {evaluations.length === 0 ? (
+                            <div className="text-center py-12">
+                                <Icons.Clipboard size={48} className="mx-auto text-slate-600 mb-4" />
+                                <p className="text-slate-400">Geen evaluasies nog voltooi nie</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {evaluations.map((evaluation, index) => {
+                                    const editable = canEdit(evaluation);
+                                    const timeRemaining = getTimeRemaining(evaluation);
+
+                                    return (
+                                        <div
+                                            key={evaluation.id || index}
+                                            className="bg-gradient-card rounded-2xl p-4 animate-fade-in"
+                                            style={{ animationDelay: `${index * 0.05}s` }}
+                                        >
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <p className="text-white font-medium">{evaluation.subjectName}</p>
+                                                    <p className="text-slate-400 text-sm">{formatDate(evaluation.submittedAt)}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-amber-400 font-bold">{evaluation.averageGrade?.toFixed(1) || '-'}</p>
+                                                    <p className="text-slate-500 text-xs">gemiddeld</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Grade Summary */}
+                                            <div className="flex gap-1 mb-3">
+                                                {QUESTIONS.map((q, i) => {
+                                                    const grade = evaluation.grades?.[q.id] || 0;
+                                                    return (
+                                                        <div
+                                                            key={q.id}
+                                                            className={`flex-1 h-2 rounded-full ${
+                                                                grade >= 4 ? 'bg-emerald-500' :
+                                                                grade >= 3 ? 'bg-amber-500' :
+                                                                grade >= 1 ? 'bg-red-500' : 'bg-slate-700'
+                                                            }`}
+                                                            title={`V${i+1}: ${grade}`}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => onView(evaluation)}
+                                                    className="flex-1 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm hover:bg-slate-700 transition"
+                                                >
+                                                    Bekyk
+                                                </button>
+                                                {editable ? (
+                                                    <button
+                                                        onClick={() => onEdit(evaluation)}
+                                                        className="flex-1 py-2 bg-amber-600 text-white rounded-xl text-sm hover:bg-amber-500 transition flex items-center justify-center gap-2"
+                                                    >
+                                                        <Icons.Clock size={14} />
+                                                        Wysig ({timeRemaining})
+                                                    </button>
+                                                ) : (
+                                                    <div className="flex-1 py-2 bg-slate-800/50 text-slate-500 rounded-xl text-sm text-center">
+                                                        Wysig tyd verstreke
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // ============================================
+        // VIEW EVALUATION SCREEN (Read-only)
+        // ============================================
+        const ViewEvaluationScreen = ({ evaluation, onBack }) => {
+            const formatDate = (dateStr) => {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('af-ZA', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            };
+
+            return (
+                <div className="min-h-screen min-h-[100dvh] pb-6 safe-top safe-bottom">
+                    {/* Header */}
+                    <div className="p-4 flex items-center gap-4 bg-gradient-card">
+                        <button onClick={onBack} className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition">
+                            <Icons.ArrowLeft size={24} className="text-slate-300" />
+                        </button>
+                        <div className="flex-1">
+                            <p className="text-slate-400 text-sm">Evaluasie vir</p>
+                            <h1 className="text-white font-display text-xl">{evaluation.subjectName}</h1>
+                        </div>
+                    </div>
+
+                    {/* Meta info */}
+                    <div className="px-6 pt-4">
+                        <div className="bg-slate-800/50 rounded-xl p-4 mb-4">
+                            <p className="text-slate-400 text-sm">Ingedien op</p>
+                            <p className="text-white">{formatDate(evaluation.submittedAt)}</p>
+                        </div>
+                    </div>
+
+                    {/* Questions and Answers */}
+                    <div className="px-6 space-y-4">
+                        {QUESTIONS.map((q, i) => {
+                            const grade = evaluation.grades?.[q.id] || 0;
+                            const comment = evaluation.comments?.[q.id] || '';
+
+                            return (
+                                <div key={q.id} className="bg-gradient-card rounded-2xl p-4">
+                                    <div className="flex items-start justify-between mb-2">
+                                        <div className="flex-1 pr-4">
+                                            <p className="text-amber-400 text-sm font-medium mb-1">Vraag {i + 1}</p>
+                                            <p className="text-white font-medium">{q.title}</p>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            {[1,2,3,4,5].map(n => (
+                                                <Icons.Star
+                                                    key={n}
+                                                    size={16}
+                                                    filled={n <= grade}
+                                                    className={n <= grade ? 'text-amber-400' : 'text-slate-600'}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <p className="text-slate-500 text-sm mb-2">{GRADE_LABELS[grade]}</p>
+                                    {comment && (
+                                        <div className="mt-3 pt-3 border-t border-slate-700">
+                                            <p className="text-slate-400 text-xs mb-1">Opmerking:</p>
+                                            <p className="text-slate-300 text-sm italic">"{comment}"</p>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
         // ============================================
         // COACH DETAIL SCREEN
         // ============================================
