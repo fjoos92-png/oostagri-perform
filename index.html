@@ -1581,6 +1581,8 @@
         // COACH DASHBOARD
         // ============================================
         const CoachDashboard = ({ user, cycle, data, onSelectPerson, onLogout, onRefresh, isLoading }) => {
+            const [sortBy, setSortBy] = useState('name'); // 'name', 'score', 'gap'
+
             if (!data) {
                 return (
                     <div className="min-h-screen min-h-[100dvh] flex items-center justify-center">
@@ -1588,105 +1590,180 @@
                     </div>
                 );
             }
-            
+
+            // Bereken span gemiddeld
+            const validAverages = data.personSummaries.filter(p => p.overallAverage > 0);
+            const teamAverage = validAverages.length > 0
+                ? (validAverages.reduce((sum, p) => sum + p.overallAverage, 0) / validAverages.length).toFixed(1)
+                : '-';
+
+            // Bereken self vs portuur gaping
+            const calculateGap = (person) => {
+                if (!person.selfGrades || !person.averageGrades) return null;
+                const selfValues = Object.values(person.selfGrades).filter(v => v > 0);
+                const peerValues = Object.values(person.averageGrades).filter(v => v > 0);
+                if (selfValues.length === 0 || peerValues.length === 0) return null;
+                const selfScore = selfValues.reduce((a, b) => a + b, 0) / selfValues.length;
+                const peerScore = peerValues.reduce((a, b) => a + b, 0) / peerValues.length;
+                return (selfScore - peerScore).toFixed(1);
+            };
+
+            // Sorteer persone
+            const sortedPersons = [...data.personSummaries].sort((a, b) => {
+                if (sortBy === 'name') {
+                    return a.subjectName.localeCompare(b.subjectName);
+                } else if (sortBy === 'score') {
+                    return (b.overallAverage || 0) - (a.overallAverage || 0);
+                } else if (sortBy === 'gap') {
+                    const gapA = Math.abs(parseFloat(calculateGap(a)) || 0);
+                    const gapB = Math.abs(parseFloat(calculateGap(b)) || 0);
+                    return gapB - gapA;
+                }
+                return 0;
+            });
+
             return (
                 <div className="min-h-screen min-h-[100dvh] pb-6">
                     {/* Header */}
-                    <div className="bg-gradient-card p-6 rounded-b-3xl safe-top">
-                        <div className="flex items-center justify-between mb-4">
+                    <div className="bg-gradient-card p-6 pb-8 rounded-b-3xl safe-top">
+                        <div className="flex items-center justify-between mb-6">
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="px-2 py-1 bg-violet-600/30 text-violet-300 text-xs font-medium rounded-lg">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="px-3 py-1.5 bg-violet-600/30 text-violet-300 text-sm font-semibold rounded-lg">
                                         COACH
                                     </span>
                                 </div>
-                                <h1 className="font-display text-2xl text-white">{user.name}</h1>
+                                <h1 className="font-display text-3xl text-white">{user.name}</h1>
                             </div>
-                            <button onClick={onLogout} className="p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700 transition">
-                                <Icons.LogOut size={20} className="text-slate-400" />
+                            <button onClick={onLogout} className="p-4 rounded-xl bg-slate-800/50 hover:bg-slate-700 transition">
+                                <Icons.LogOut size={24} className="text-slate-400" />
                             </button>
                         </div>
-                        
+
                         {/* Cycle Info */}
-                        <div className="bg-slate-800/50 rounded-2xl p-4 mb-4">
+                        <div className="bg-slate-800/50 rounded-2xl p-5 mb-6">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Icons.Clock size={20} className="text-amber-500" />
+                                <div className="flex items-center gap-4">
+                                    <Icons.Clock size={28} className="text-amber-500" />
                                     <div>
-                                        <p className="text-white font-medium">{cycle?.name}</p>
-                                        <p className="text-slate-400 text-sm">Huidige siklus</p>
+                                        <p className="text-white font-semibold text-xl">{cycle?.name}</p>
+                                        <p className="text-slate-400 text-base">Huidige siklus</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-2xl font-bold text-white">{data.completionRate}%</p>
-                                    <p className="text-slate-400 text-sm">voltooi</p>
+                                    <p className="text-3xl font-bold text-white">{data.completionRate}%</p>
+                                    <p className="text-slate-400 text-base">voltooi</p>
                                 </div>
                             </div>
                         </div>
-                        
+
                         {/* Stats */}
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                        <div className="grid grid-cols-4 gap-3">
+                            <div className="bg-slate-800/50 rounded-xl p-4 text-center">
                                 <p className="text-2xl font-bold text-white">{data.totalSubjects}</p>
-                                <p className="text-slate-400 text-xs">Bestuurders</p>
+                                <p className="text-slate-400 text-sm">Bestuurders</p>
                             </div>
-                            <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                            <div className="bg-slate-800/50 rounded-xl p-4 text-center">
                                 <p className="text-2xl font-bold text-emerald-400">{data.totalCompleted}</p>
-                                <p className="text-slate-400 text-xs">Voltooi</p>
+                                <p className="text-slate-400 text-sm">Voltooi</p>
                             </div>
-                            <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                            <div className="bg-slate-800/50 rounded-xl p-4 text-center">
                                 <p className="text-2xl font-bold text-amber-400">{data.totalExpected - data.totalCompleted}</p>
-                                <p className="text-slate-400 text-xs">Uitstaande</p>
+                                <p className="text-slate-400 text-sm">Uitstaande</p>
+                            </div>
+                            <div className="bg-gradient-gold/20 border-2 border-amber-500/40 rounded-xl p-4 text-center">
+                                <p className="text-2xl font-bold text-amber-400">{teamAverage}</p>
+                                <p className="text-amber-300/70 text-sm">Span Gem.</p>
                             </div>
                         </div>
                     </div>
-                    
-                    {/* Refresh Button */}
-                    <div className="px-6 pt-4">
+
+                    {/* Action Bar */}
+                    <div className="px-6 pt-6 flex gap-3">
                         <button
                             onClick={onRefresh}
                             disabled={isLoading}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 rounded-xl text-slate-300 hover:bg-slate-700 transition disabled:opacity-50"
+                            className="flex items-center justify-center gap-2 px-5 py-4 bg-slate-800 rounded-xl text-slate-300 text-base font-medium hover:bg-slate-700 transition disabled:opacity-50"
                         >
-                            <Icons.Refresh size={18} className={isLoading ? 'animate-spin' : ''} />
-                            Verfris Data
+                            <Icons.Refresh size={20} className={isLoading ? 'animate-spin' : ''} />
+                            Verfris
                         </button>
+                        <div className="flex-1 flex bg-slate-800 rounded-xl overflow-hidden">
+                            <button
+                                onClick={() => setSortBy('name')}
+                                className={`flex-1 py-4 text-base font-medium transition ${sortBy === 'name' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                Naam
+                            </button>
+                            <button
+                                onClick={() => setSortBy('score')}
+                                className={`flex-1 py-4 text-base font-medium transition ${sortBy === 'score' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                Telling
+                            </button>
+                            <button
+                                onClick={() => setSortBy('gap')}
+                                className={`flex-1 py-4 text-base font-medium transition ${sortBy === 'gap' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                Gaping
+                            </button>
+                        </div>
                     </div>
-                    
+
                     {/* Person List */}
                     <div className="px-6 pt-6">
-                        <h2 className="text-lg font-semibold text-white mb-4">Individuele Resultate</h2>
-                        
-                        <div className="space-y-3">
-                            {data.personSummaries.map((person, index) => (
-                                <button
-                                    key={person.subjectId}
-                                    onClick={() => onSelectPerson(person)}
-                                    className="w-full flex items-center gap-4 p-4 bg-gradient-card rounded-2xl border-2 border-transparent hover:border-violet-500/50 transition animate-fade-in"
-                                    style={{ animationDelay: `${index * 0.05}s` }}
-                                >
-                                    <div className="w-12 h-12 rounded-xl bg-violet-600/20 flex items-center justify-center">
-                                        <Icons.User size={24} className="text-violet-400" />
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <p className="text-white font-medium">{person.subjectName}</p>
-                                        <p className="text-slate-400 text-sm">
-                                            {person.peerEvalCount} evaluasies • 
-                                            {person.hasSelfEval ? ' ✓ Self' : ' ✗ Self'}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className={`text-2xl font-bold ${
-                                            person.overallAverage >= 4 ? 'text-emerald-400' :
-                                            person.overallAverage >= 3 ? 'text-amber-400' : 'text-red-400'
+                        <h2 className="text-xl font-semibold text-white mb-5">Individuele Resultate</h2>
+
+                        <div className="space-y-4">
+                            {sortedPersons.map((person, index) => {
+                                const gap = calculateGap(person);
+                                const hasLargeGap = gap && Math.abs(parseFloat(gap)) >= 1;
+
+                                return (
+                                    <button
+                                        key={person.subjectId}
+                                        onClick={() => onSelectPerson(person)}
+                                        className="w-full flex items-center gap-4 p-5 bg-gradient-card rounded-2xl border-2 border-transparent hover:border-violet-500/50 transition animate-fade-in"
+                                        style={{ animationDelay: `${index * 0.05}s` }}
+                                    >
+                                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+                                            person.overallAverage >= 4 ? 'bg-emerald-600/20' :
+                                            person.overallAverage >= 3 ? 'bg-amber-600/20' :
+                                            person.overallAverage > 0 ? 'bg-red-600/20' : 'bg-slate-700/50'
                                         }`}>
-                                            {person.overallAverage || '-'}
-                                        </p>
-                                        <p className="text-slate-500 text-xs">gemiddeld</p>
-                                    </div>
-                                    <Icons.ArrowRight size={20} className="text-slate-500" />
-                                </button>
-                            ))}
+                                            <Icons.User size={28} className={
+                                                person.overallAverage >= 4 ? 'text-emerald-400' :
+                                                person.overallAverage >= 3 ? 'text-amber-400' :
+                                                person.overallAverage > 0 ? 'text-red-400' : 'text-slate-500'
+                                            } />
+                                        </div>
+                                        <div className="flex-1 text-left">
+                                            <p className="text-white font-semibold text-lg">{person.subjectName}</p>
+                                            <p className="text-slate-400 text-base">
+                                                {person.peerEvalCount} evaluasies
+                                                {person.hasSelfEval ? ' • ✓ Self' : ' • ✗ Self'}
+                                            </p>
+                                        </div>
+                                        <div className="text-right mr-2">
+                                            <p className={`text-3xl font-bold ${
+                                                person.overallAverage >= 4 ? 'text-emerald-400' :
+                                                person.overallAverage >= 3 ? 'text-amber-400' :
+                                                person.overallAverage > 0 ? 'text-red-400' : 'text-slate-500'
+                                            }`}>
+                                                {person.overallAverage || '-'}
+                                            </p>
+                                            {gap && (
+                                                <p className={`text-sm font-medium ${
+                                                    hasLargeGap ? 'text-orange-400' : 'text-slate-500'
+                                                }`}>
+                                                    {parseFloat(gap) > 0 ? '+' : ''}{gap} gaping
+                                                </p>
+                                            )}
+                                        </div>
+                                        <Icons.ArrowRight size={24} className="text-slate-500" />
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -1916,11 +1993,12 @@
         const CoachDetailScreen = ({ person, cycle, user, onBack }) => {
             const [detail, setDetail] = useState(null);
             const [isLoading, setIsLoading] = useState(true);
-            
+            const [activeTab, setActiveTab] = useState('scores'); // 'scores', 'comments'
+
             useEffect(() => {
                 loadDetail();
             }, []);
-            
+
             const loadDetail = async () => {
                 setIsLoading(true);
                 const result = await apiCall('getPersonDetail', {
@@ -1933,7 +2011,7 @@
                 }
                 setIsLoading(false);
             };
-            
+
             if (isLoading) {
                 return (
                     <div className="min-h-screen min-h-[100dvh] flex items-center justify-center">
@@ -1941,75 +2019,173 @@
                     </div>
                 );
             }
-            
+
             const peerEvals = detail?.filter(e => !e.isSelfEval) || [];
             const selfEval = detail?.find(e => e.isSelfEval);
-            
+
+            // Bereken self vs portuur gaping
+            const selfValues = person.selfGrades ? Object.values(person.selfGrades).filter(v => v > 0) : [];
+            const peerValues = person.averageGrades ? Object.values(person.averageGrades).filter(v => v > 0) : [];
+            const selfAvg = selfValues.length > 0 ? (selfValues.reduce((a, b) => a + b, 0) / selfValues.length).toFixed(1) : null;
+            const peerAvg = peerValues.length > 0 ? (peerValues.reduce((a, b) => a + b, 0) / peerValues.length).toFixed(1) : null;
+            const gap = selfAvg && peerAvg ? (parseFloat(selfAvg) - parseFloat(peerAvg)).toFixed(1) : null;
+
             return (
                 <div className="min-h-screen min-h-[100dvh] pb-6 safe-top safe-bottom">
                     {/* Header */}
-                    <div className="p-4 flex items-center gap-4 bg-gradient-card">
-                        <button onClick={onBack} className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition">
+                    <div className="p-5 flex items-center gap-4 bg-gradient-card">
+                        <button onClick={onBack} className="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition">
                             <Icons.ArrowLeft size={24} className="text-slate-300" />
                         </button>
                         <div className="flex-1">
-                            <p className="text-violet-400 text-sm">Coach Aansig</p>
-                            <p className="text-white font-display text-xl">{person.subjectName}</p>
+                            <p className="text-violet-400 text-base font-medium">Coach Aansig</p>
+                            <p className="text-white font-display text-2xl">{person.subjectName}</p>
                         </div>
                     </div>
-                    
-                    {/* Average Scores */}
-                    <div className="p-6">
-                        <h3 className="text-white font-medium mb-4">Gemiddelde per Vraag (Portuur)</h3>
-                        <div className="space-y-3">
-                            {QUESTIONS.map((q, i) => {
-                                const avg = person.averageGrades?.[q.id] || 0;
-                                const selfScore = person.selfGrades?.[q.id] || 0;
-                                const barWidth = (avg / 5) * 100;
-                                
-                                return (
-                                    <div key={q.id} className="bg-slate-800/50 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <p className="text-slate-300 text-sm flex-1 pr-4">{q.title}</p>
-                                            <div className="text-right">
-                                                <span className="text-amber-400 font-bold">{avg}</span>
-                                                {selfScore > 0 && (
-                                                    <span className="text-slate-500 text-sm ml-2">(Self: {selfScore})</span>
-                                                )}
+
+                    {/* Summary Cards */}
+                    <div className="px-6 pt-6">
+                        <div className="grid grid-cols-3 gap-3 mb-6">
+                            <div className="bg-gradient-card rounded-xl p-4 text-center">
+                                <p className={`text-3xl font-bold ${
+                                    person.overallAverage >= 4 ? 'text-emerald-400' :
+                                    person.overallAverage >= 3 ? 'text-amber-400' : 'text-red-400'
+                                }`}>{person.overallAverage || '-'}</p>
+                                <p className="text-slate-400 text-sm">Portuur Gem.</p>
+                            </div>
+                            <div className="bg-gradient-card rounded-xl p-4 text-center">
+                                <p className="text-3xl font-bold text-violet-400">{selfAvg || '-'}</p>
+                                <p className="text-slate-400 text-sm">Self Gem.</p>
+                            </div>
+                            <div className={`bg-gradient-card rounded-xl p-4 text-center ${gap && Math.abs(parseFloat(gap)) >= 1 ? 'border-2 border-orange-500/50' : ''}`}>
+                                <p className={`text-3xl font-bold ${
+                                    gap && Math.abs(parseFloat(gap)) >= 1 ? 'text-orange-400' : 'text-slate-400'
+                                }`}>{gap ? (parseFloat(gap) > 0 ? '+' : '') + gap : '-'}</p>
+                                <p className="text-slate-400 text-sm">Gaping</p>
+                            </div>
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex gap-4 mb-6 text-base">
+                            <div className="flex items-center gap-2 text-slate-400">
+                                <Icons.Users size={18} />
+                                <span>{person.peerEvalCount} portuur evaluasies</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-400">
+                                {person.hasSelfEval ? (
+                                    <><Icons.CheckCircle size={18} className="text-emerald-400" /><span className="text-emerald-400">Self voltooi</span></>
+                                ) : (
+                                    <><Icons.Circle size={18} /><span>Self nie voltooi</span></>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex bg-slate-800 rounded-xl overflow-hidden mb-6">
+                            <button
+                                onClick={() => setActiveTab('scores')}
+                                className={`flex-1 py-4 text-base font-medium transition ${activeTab === 'scores' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                Tellings per Vraag
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('comments')}
+                                className={`flex-1 py-4 text-base font-medium transition ${activeTab === 'comments' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                Opmerkings
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Scores Tab */}
+                    {activeTab === 'scores' && (
+                        <div className="px-6">
+                            <div className="space-y-4">
+                                {QUESTIONS.map((q, i) => {
+                                    const avg = person.averageGrades?.[q.id] || 0;
+                                    const selfScore = person.selfGrades?.[q.id] || 0;
+                                    const barWidth = (avg / 5) * 100;
+                                    const selfBarWidth = (selfScore / 5) * 100;
+                                    const questionGap = selfScore && avg ? (selfScore - avg).toFixed(1) : null;
+
+                                    return (
+                                        <div key={q.id} className="bg-gradient-card rounded-xl p-5">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex-1 pr-4">
+                                                    <p className="text-amber-400 text-sm font-medium mb-1">Vraag {i + 1}</p>
+                                                    <p className="text-white font-medium text-base">{q.title}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className={`text-2xl font-bold ${
+                                                        avg >= 4 ? 'text-emerald-400' :
+                                                        avg >= 3 ? 'text-amber-400' :
+                                                        avg > 0 ? 'text-red-400' : 'text-slate-500'
+                                                    }`}>{avg || '-'}</p>
+                                                </div>
                                             </div>
+                                            {/* Peer bar */}
+                                            <div className="mb-2">
+                                                <div className="flex justify-between text-sm mb-1">
+                                                    <span className="text-slate-400">Portuur</span>
+                                                    <span className="text-slate-400">{avg}/5</span>
+                                                </div>
+                                                <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full transition-all duration-500 ${
+                                                            avg >= 4 ? 'bg-emerald-500' :
+                                                            avg >= 3 ? 'bg-amber-500' : 'bg-red-500'
+                                                        }`}
+                                                        style={{ width: `${barWidth}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            {/* Self bar */}
+                                            {selfScore > 0 && (
+                                                <div>
+                                                    <div className="flex justify-between text-sm mb-1">
+                                                        <span className="text-violet-400">Self</span>
+                                                        <span className="text-violet-400">{selfScore}/5</span>
+                                                    </div>
+                                                    <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-violet-500 transition-all duration-500"
+                                                            style={{ width: `${selfBarWidth}%` }}
+                                                        />
+                                                    </div>
+                                                    {questionGap && Math.abs(parseFloat(questionGap)) >= 1 && (
+                                                        <p className="text-orange-400 text-sm mt-2">
+                                                            ⚠️ Gaping van {parseFloat(questionGap) > 0 ? '+' : ''}{questionGap}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full bg-gradient-gold transition-all duration-500"
-                                                style={{ width: `${barWidth}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                    
-                    {/* Comments */}
-                    <div className="px-6">
-                        <h3 className="text-white font-medium mb-4">Opmerkings</h3>
-                        <div className="space-y-4">
-                            {QUESTIONS.map(q => {
-                                const comments = peerEvals
-                                    .map(e => e.comments?.[q.id])
-                                    .filter(c => c && c.trim());
-                                
-                                if (comments.length === 0) return null;
-                                
-                                return (
-                                    <div key={q.id} className="bg-slate-800/50 rounded-xl p-4">
-                                        <p className="text-amber-400 text-sm font-medium mb-2">{q.title}</p>
-                                        <div className="space-y-2">
-                                            {comments.map((comment, i) => (
-                                                <p key={i} className="text-slate-300 text-sm pl-3 border-l-2 border-slate-600">
-                                                    "{comment}"
-                                                </p>
-                                            ))}
+                    )}
+
+                    {/* Comments Tab */}
+                    {activeTab === 'comments' && (
+                        <div className="px-6">
+                            <div className="space-y-4">
+                                {QUESTIONS.map(q => {
+                                    const comments = peerEvals
+                                        .map(e => e.comments?.[q.id])
+                                        .filter(c => c && c.trim());
+
+                                    if (comments.length === 0) return null;
+
+                                    return (
+                                        <div key={q.id} className="bg-gradient-card rounded-xl p-5">
+                                            <p className="text-amber-400 text-base font-semibold mb-3">{q.title}</p>
+                                            <div className="space-y-3">
+                                                {comments.map((comment, i) => (
+                                                    <p key={i} className="text-slate-300 text-base pl-4 border-l-3 border-slate-600 leading-relaxed">
+                                                        "{comment}"
+                                                    </p>
+                                                ))}
                                         </div>
                                     </div>
                                 );
