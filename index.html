@@ -586,41 +586,47 @@
                 }
             };
             
-            // Load initial data
-            const loadInitialData = async () => {
+            // Load initial data - user parameter is optional, uses currentUser if not provided
+            const loadInitialData = async (user = null) => {
+                const activeUser = user || currentUser;
+                if (!activeUser) {
+                    setError('Geen gebruiker aangemeld');
+                    return;
+                }
+
                 setIsLoading(true);
                 try {
                     // Get current cycle
                     const cycleResult = await apiCall('getCurrentCycle');
                     if (cycleResult.success) {
                         setCurrentCycle(cycleResult.cycle);
-                        
+
                         // Get subjects
-                        const subjectsResult = await apiCall('getSubjects', { userId: currentUser.code });
+                        const subjectsResult = await apiCall('getSubjects', { userId: activeUser.code });
                         if (subjectsResult.success) {
                             setSubjects(subjectsResult.subjects);
                         }
-                        
+
                         // Get evaluation status
                         const statusResult = await apiCall('getEvaluationStatus', {
-                            userId: currentUser.code,
+                            userId: activeUser.code,
                             cycleId: cycleResult.cycle.id
                         });
                         if (statusResult.success) {
                             setCompletedSubjects(statusResult.completedSubjects);
                         }
-                        
+
                         // If coach, load summary
-                        if (currentUser.role === 'coach') {
+                        if (activeUser.role === 'coach') {
                             const summaryResult = await apiCall('getCycleSummary', {
                                 cycleId: cycleResult.cycle.id,
-                                requesterId: currentUser.code
+                                requesterId: activeUser.code
                             });
                             if (summaryResult.success) {
                                 setCoachData(summaryResult.summary);
                             }
                         }
-                        
+
                         setScreen('dashboard');
                     } else if (cycleResult.noCycle) {
                         setError('Geen oop evaluasiesiklus');
@@ -647,7 +653,7 @@
                 if (result.success) {
                     setCurrentUser(result.user);
                     localStorage.setItem(USER_KEY, JSON.stringify(result.user));
-                    await loadInitialData();
+                    await loadInitialData(result.user);
                 } else {
                     setError(result.error || 'Ongeldige kode');
                 }
