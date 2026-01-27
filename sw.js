@@ -3,7 +3,7 @@
  * Weergawe: 1.1.0
  */
 
-const CACHE_NAME = 'oostagri-leierskap-v4';
+const CACHE_NAME = 'oostagri-leierskap-v5';
 
 const CORE_ASSETS = [
     './',
