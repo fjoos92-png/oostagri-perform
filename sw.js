@@ -1,9 +1,9 @@
 /**
  * OOSTAGRI LEIERSKAP - Service Worker
- * Weergawe: 1.1
+ * Weergawe: 1.1.0
  */
 
-const CACHE_NAME = 'oostagri-leierskap-v2';
+const CACHE_NAME = 'oostagri-leierskap-v3';
 
 const CORE_ASSETS = [
     './',
