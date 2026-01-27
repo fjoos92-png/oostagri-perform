@@ -625,9 +625,13 @@
                     } else if (cycleResult.noCycle) {
                         setError('Geen oop evaluasiesiklus');
                         setScreen('noCycle');
+                    } else {
+                        console.error('Siklus fout:', cycleResult);
+                        setError(cycleResult.error || 'Kon nie siklus laai nie');
                     }
                 } catch (e) {
-                    setError('Kon nie data laai nie');
+                    console.error('loadInitialData fout:', e);
+                    setError('Kon nie data laai nie: ' + e.message);
                 } finally {
                     setIsLoading(false);
                 }
