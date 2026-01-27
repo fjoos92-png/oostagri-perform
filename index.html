@@ -423,6 +423,196 @@
         };
 
         // ============================================
+        // MELKSTALBESTUURDER EVALUASIE VRAE
+        // ============================================
+        const MELKSTAL_SECTIONS = [
+            {
+                id: 'kuddebestuur',
+                title: 'Kuddebestuur en Melkbedrywighede',
+                questions: [
+                    {
+                        id: 'ms1',
+                        type: 'yesnoNA',
+                        title: 'Kalfsterstesyfer onder 5% vir die maand?',
+                        hint: 'Berekening handleiding: Aantal kalwers 3 maande en jonger moet 5%'
+                    },
+                    {
+                        id: 'ms2',
+                        type: 'text',
+                        title: 'Rede vir afwyking (indien van toepassing)',
+                        conditional: 'ms1:Nee'
+                    },
+                    {
+                        id: 'ms3',
+                        type: 'yesno',
+                        title: 'Koeisterftes vir maand minder as 5?'
+                    },
+                    {
+                        id: 'ms4',
+                        type: 'choice',
+                        title: 'Koeie in melk maar nie gemelk nie volgens Delpro (uitgesluit kalf koeie)',
+                        options: ['0 - 2', '3 - 5', '6+']
+                    },
+                    {
+                        id: 'ms5',
+                        type: 'choice',
+                        title: 'Koeie in melk 90 dae plus sonder KI datum',
+                        options: ['Geen', '1 - 5', '6 - 10', '11+']
+                    },
+                    {
+                        id: 'ms6',
+                        type: 'choice',
+                        title: 'Koeie in melk 180 dae plus en nie dragtig bevestig',
+                        options: ['Geen', '1 - 5', '6 - 15', '15+']
+                    },
+                    {
+                        id: 'ms7',
+                        type: 'choice',
+                        title: 'Koeie oor verwagte kalf datum vir 7 dae en meer',
+                        options: ['Geen', '1 - 5', '6+']
+                    },
+                    {
+                        id: 'ms8',
+                        type: 'choice',
+                        title: 'Aantal koeie in siekspan vir 14+ dae?',
+                        options: ['Geen', 'Een en meer']
+                    },
+                    {
+                        id: 'ms9',
+                        type: 'text',
+                        title: 'Rede vir siek koeie langer as 14 dae in siek span?',
+                        conditional: 'ms8:Een en meer'
+                    },
+                    {
+                        id: 'ms10',
+                        type: 'yesno',
+                        title: 'Gesondheid-, kalf en paringsplan opgestel en geïmplementeer?'
+                    },
+                    {
+                        id: 'ms11',
+                        type: 'yesno',
+                        title: 'Inentingsplan op datum en voorraad medikasie voldoende?'
+                    },
+                    {
+                        id: 'ms12',
+                        type: 'yesno',
+                        title: 'Somatiese seltelling gemiddeld < 250 000?'
+                    },
+                    {
+                        id: 'ms13',
+                        type: 'yesno',
+                        title: 'Bakterietelling < 50?'
+                    },
+                    {
+                        id: 'ms14',
+                        type: 'yesno',
+                        title: 'Rekordhouding (Delpro/Kalfregister/Verslag) volledig en ingedien voor 5de?'
+                    }
+                ]
+            },
+            {
+                id: 'instandhouding',
+                title: 'Instandhouding',
+                questions: [
+                    {
+                        id: 'ms15',
+                        type: 'yesno',
+                        title: 'Is toerusting, parte en medikasie gesorteer?'
+                    },
+                    {
+                        id: 'ms16',
+                        type: 'yesno',
+                        title: 'Is toerusting, parte en medikasie maandelikse voorraad getel?'
+                    },
+                    {
+                        id: 'ms17',
+                        type: 'choice',
+                        title: 'Afkoelers wat nie werk nie',
+                        options: ['0 - 1', '2 - 3', '4+']
+                    },
+                    {
+                        id: 'ms18',
+                        type: 'choice',
+                        title: 'Aantal waterpype wat lek',
+                        options: ['Geen', '1 - 2', '3+']
+                    },
+                    {
+                        id: 'ms19',
+                        type: 'multirating',
+                        title: 'Hoe sal jy die algemene netheid van die melkstal, kantoor en perseel gradeer?',
+                        items: [
+                            'Netheid van die melkstal se senter',
+                            'Netheid van die kantoor',
+                            'Netheid van die kompressor, was en seep kamer',
+                            'Netheid generator kamer',
+                            'Netheid rondom die melkstal',
+                            'Netheid en toestand van bakkie onder bestuurder se toesig'
+                        ],
+                        labels: ['Onaanvaarbaar', 'Swak', 'Aanvaarbaar', 'Goed', 'Uitstekend']
+                    }
+                ]
+            },
+            {
+                id: 'moraal',
+                title: 'Moraal & Gesondheid',
+                questions: [
+                    {
+                        id: 'ms20',
+                        type: 'rating',
+                        title: 'Watter vlak van kultuurbou het die bestuurder getoon hierdie maand?',
+                        labels: [
+                            'Negatief - Trek spanenergie af',
+                            'Neutraal - Beperk tot nie sake',
+                            'Neutraal - Hou balans, maar bou nie aktief kultuur nie',
+                            'Positief - Motiveer en ondersteun spanlede',
+                            'Inspirerend - Stel hoë standaard, help ander om te groei'
+                        ]
+                    },
+                    {
+                        id: 'ms21',
+                        type: 'text',
+                        title: 'Voorbeeld van gedrag wat hierdie gradering ondersteun?'
+                    },
+                    {
+                        id: 'ms22',
+                        type: 'multirating',
+                        title: 'Spanmoraal, Bereidwilligheid en Algemene Gesondheid gedurende die maand?',
+                        items: [
+                            'Algemene moraal van span',
+                            'Bereidwilligheid om te help en te lê',
+                            'Samewerking en kommunikasie'
+                        ],
+                        labels: ['Baie Swak', 'Swak', 'Gemiddeld', 'Goed', 'Uitstekend']
+                    },
+                    {
+                        id: 'ms23',
+                        type: 'text',
+                        title: 'Enige opmerking wat gradering van 1 of 2 ondersteun'
+                    }
+                ]
+            },
+            {
+                id: 'opmerkings',
+                title: 'Opmerkings en Aksies',
+                questions: [
+                    {
+                        id: 'ms24',
+                        type: 'textarea',
+                        title: 'Kommentaar / Opmerkings van bestuurder'
+                    },
+                    {
+                        id: 'ms25',
+                        type: 'textarea',
+                        title: 'Aksies of verbeteringsplan vir volgende maand'
+                    }
+                ]
+            }
+        ];
+
+        // Flatten all questions for easy access
+        const MELKSTAL_QUESTIONS = MELKSTAL_SECTIONS.flatMap(s => s.questions);
+
+        // ============================================
         // ERROR BOUNDARY
         // ============================================
         class ErrorBoundary extends Component {
@@ -535,6 +725,16 @@
             const [myEvaluations, setMyEvaluations] = useState([]);
             const [selectedEvaluationForEdit, setSelectedEvaluationForEdit] = useState(null);
 
+            // Middle management (Melkstalbestuurder) state
+            const [subordinates, setSubordinates] = useState([]);
+            const [completedSubordinates, setCompletedSubordinates] = useState([]);
+            const [currentMonth, setCurrentMonth] = useState(() => {
+                const now = new Date();
+                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            });
+            const [myMelkstalEvaluations, setMyMelkstalEvaluations] = useState([]);
+            const [selectedMelkstalSubject, setSelectedMelkstalSubject] = useState(null);
+
             // Service Worker update state
             const [swUpdateAvailable, setSwUpdateAvailable] = useState(window.swUpdateAvailable || false);
             
@@ -610,6 +810,11 @@
                     if (cycleResult.success) {
                         setCurrentCycle(cycleResult.cycle);
 
+                        // Get current month for subordinate evaluations
+                        const now = new Date();
+                        const monthId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                        setCurrentMonth(monthId);
+
                         // Run remaining API calls in parallel for faster loading
                         const parallelCalls = [
                             apiCall('getSubjects', { userId: activeUser.code }),
@@ -621,6 +826,17 @@
                             apiCall('getUserEvaluations', {
                                 userId: activeUser.code,
                                 cycleId: cycleResult.cycle.id
+                            }),
+                            // Get subordinates (middle management)
+                            apiCall('getSubordinates', { supervisorId: activeUser.code }),
+                            // Get subordinate evaluation status for current month
+                            apiCall('getMelkstalStatus', {
+                                supervisorId: activeUser.code,
+                                monthId: monthId
+                            }),
+                            // Get user's melkstal evaluations for history
+                            apiCall('getUserMelkstalEvaluations', {
+                                userId: activeUser.code
                             })
                         ];
 
@@ -655,9 +871,27 @@
                             setMyEvaluations(evalsResult.evaluations || []);
                         }
 
-                        // Process coach summary if applicable (now index 3)
-                        if (activeUser.role === 'coach' && results[3]) {
-                            const summaryResult = results[3];
+                        // Process subordinates (middle management)
+                        const subordinatesResult = results[3];
+                        if (subordinatesResult.success) {
+                            setSubordinates(subordinatesResult.subordinates || []);
+                        }
+
+                        // Process melkstal status
+                        const melkstalStatusResult = results[4];
+                        if (melkstalStatusResult.success) {
+                            setCompletedSubordinates(melkstalStatusResult.completedSubordinates || []);
+                        }
+
+                        // Process melkstal evaluations history
+                        const melkstalEvalsResult = results[5];
+                        if (melkstalEvalsResult.success) {
+                            setMyMelkstalEvaluations(melkstalEvalsResult.evaluations || []);
+                        }
+
+                        // Process coach summary if applicable (now index 6)
+                        if (activeUser.role === 'coach' && results[6]) {
+                            const summaryResult = results[6];
                             if (summaryResult.success) {
                                 setCoachData(summaryResult.summary);
                             }
@@ -783,7 +1017,44 @@
 
                 setIsLoading(false);
             };
-            
+
+            // Submit melkstal evaluation
+            const handleSubmitMelkstalEvaluation = async (evalData) => {
+                setIsLoading(true);
+
+                const fullData = {
+                    ...evalData,
+                    monthId: currentMonth,
+                    evaluatorCode: currentUser.code,
+                    evaluatorName: currentUser.name,
+                    subjectCode: selectedMelkstalSubject.id,
+                    subjectName: selectedMelkstalSubject.name,
+                    subjectLocation: selectedMelkstalSubject.location || ''
+                };
+
+                if (isOnline) {
+                    const result = await apiCall('submitMelkstalEvaluation', { data: fullData });
+                    if (result.success) {
+                        setCompletedSubordinates([...completedSubordinates, selectedMelkstalSubject.id]);
+                        showToast('Evaluasie suksesvol gestoor!', 'success');
+                        // Refresh melkstal evaluations list
+                        const evalsResult = await apiCall('getUserMelkstalEvaluations', {
+                            userId: currentUser.code
+                        });
+                        if (evalsResult.success) {
+                            setMyMelkstalEvaluations(evalsResult.evaluations || []);
+                        }
+                        setScreen('melkstalSuccess');
+                    } else {
+                        showToast(result.error || 'Kon nie stoor nie', 'error');
+                    }
+                } else {
+                    showToast('Jy moet aanlyn wees om melkstal evaluasies te stoor', 'error');
+                }
+
+                setIsLoading(false);
+            };
+
             // Toast helper
             const showToast = (message, type = 'info') => {
                 setToast({ message, type });
@@ -795,7 +1066,13 @@
                 setSelectedSubject(subject);
                 setScreen('evaluation');
             };
-            
+
+            // Start melkstal evaluation
+            const startMelkstalEvaluation = (subordinate) => {
+                setSelectedMelkstalSubject(subordinate);
+                setScreen('melkstalEvaluation');
+            };
+
             // Progress calculation
             const getProgress = () => {
                 const total = subjects.length;
@@ -874,12 +1151,16 @@
                             subjects={subjects}
                             completedSubjects={completedSubjects}
                             progress={getProgress()}
+                            subordinates={subordinates}
+                            completedSubordinates={completedSubordinates}
+                            currentMonth={currentMonth}
                             onStartEvaluation={startEvaluation}
+                            onStartMelkstalEvaluation={startMelkstalEvaluation}
                             onLogout={handleLogout}
                             onRefresh={loadInitialData}
                             isLoading={isLoading}
                             onViewHistory={() => setScreen('myEvaluations')}
-                            historyCount={myEvaluations.length}
+                            historyCount={myEvaluations.length + myMelkstalEvaluations.length}
                         />
                     )}
                     
@@ -907,7 +1188,30 @@
                             isLoading={isLoading}
                         />
                     )}
-                    
+
+                    {screen === 'melkstalEvaluation' && selectedMelkstalSubject && (
+                        <MelkstalEvaluationScreen
+                            subject={selectedMelkstalSubject}
+                            currentMonth={currentMonth}
+                            onSubmit={handleSubmitMelkstalEvaluation}
+                            onBack={() => {
+                                setSelectedMelkstalSubject(null);
+                                setScreen('dashboard');
+                            }}
+                            isLoading={isLoading}
+                        />
+                    )}
+
+                    {screen === 'melkstalSuccess' && (
+                        <SuccessScreen
+                            subject={selectedMelkstalSubject}
+                            onContinue={() => {
+                                setSelectedMelkstalSubject(null);
+                                setScreen('dashboard');
+                            }}
+                        />
+                    )}
+
                     {screen === 'success' && (
                         <SuccessScreen
                             subject={selectedSubject}
@@ -1175,12 +1479,31 @@
         // ============================================
         const DashboardScreen = ({
             user, cycle, subjects, completedSubjects, progress,
-            onStartEvaluation, onLogout, onRefresh, isLoading, onViewHistory, historyCount
+            subordinates, completedSubordinates, currentMonth,
+            onStartEvaluation, onStartMelkstalEvaluation, onLogout, onRefresh, isLoading, onViewHistory, historyCount
         }) => {
             const radius = 45;
             const circumference = 2 * Math.PI * radius;
             const offset = circumference - (progress.percentage / 100) * circumference;
-            
+
+            // Format month for display
+            const formatMonth = (monthId) => {
+                if (!monthId) return '';
+                const [year, month] = monthId.split('-');
+                const months = ['Januarie', 'Februarie', 'Maart', 'April', 'Mei', 'Junie',
+                               'Julie', 'Augustus', 'September', 'Oktober', 'November', 'Desember'];
+                return `${months[parseInt(month) - 1]} ${year}`;
+            };
+
+            // Calculate subordinate progress
+            const subProgress = {
+                done: completedSubordinates?.length || 0,
+                total: subordinates?.length || 0,
+                percentage: subordinates?.length > 0
+                    ? Math.round((completedSubordinates?.length || 0) / subordinates.length * 100)
+                    : 0
+            };
+
             return (
                 <div className="min-h-screen min-h-[100dvh] pb-6">
                     {/* Header */}
@@ -1236,7 +1559,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Action Buttons */}
                     <div className="px-6 pt-6 flex gap-3">
                         <button
@@ -1258,9 +1581,12 @@
                         )}
                     </div>
 
-                    {/* Subject List */}
+                    {/* Mede-Topbestuurslede Section */}
                     <div className="px-6 pt-8">
-                        <h2 className="text-xl font-semibold text-white mb-5">Evalueer Spanmaats</h2>
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-xl font-semibold text-white">Mede-Topbestuurslede</h2>
+                            <span className="text-sm text-slate-400 bg-slate-800 px-3 py-1 rounded-full">Kwartaalliks</span>
+                        </div>
 
                         <div className="space-y-4">
                             {subjects.map((subject, index) => {
@@ -1305,7 +1631,73 @@
                             })}
                         </div>
                     </div>
-                    
+
+                    {/* My Span (Subordinates) Section */}
+                    {subordinates && subordinates.length > 0 && (
+                        <div className="px-6 pt-8">
+                            <div className="flex items-center justify-between mb-5">
+                                <h2 className="text-xl font-semibold text-white">My Span</h2>
+                                <span className="text-sm text-emerald-400 bg-emerald-600/20 px-3 py-1 rounded-full">
+                                    {formatMonth(currentMonth)}
+                                </span>
+                            </div>
+
+                            {/* Subordinate Progress */}
+                            {subProgress.total > 0 && (
+                                <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-xl p-4 mb-4">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-emerald-300">Maandelikse vordering</span>
+                                        <span className="text-emerald-400 font-bold">{subProgress.done}/{subProgress.total}</span>
+                                    </div>
+                                    <div className="h-2 bg-slate-700 rounded-full mt-2 overflow-hidden">
+                                        <div
+                                            className="h-full bg-emerald-500 transition-all duration-500"
+                                            style={{ width: `${subProgress.percentage}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-4">
+                                {subordinates.map((sub, index) => {
+                                    const isCompleted = completedSubordinates?.includes(sub.id);
+
+                                    return (
+                                        <button
+                                            key={sub.id}
+                                            onClick={() => !isCompleted && onStartMelkstalEvaluation(sub)}
+                                            disabled={isCompleted}
+                                            className={`w-full flex items-center gap-4 p-5 rounded-2xl transition animate-fade-in ${
+                                                isCompleted
+                                                    ? 'bg-slate-800/30 opacity-60'
+                                                    : 'bg-gradient-card hover:border-emerald-500/50 border-2 border-transparent'
+                                            }`}
+                                            style={{ animationDelay: `${index * 0.05}s` }}
+                                        >
+                                            <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-emerald-600/20">
+                                                {isCompleted ? (
+                                                    <Icons.CheckCircle size={28} className="text-emerald-400" />
+                                                ) : (
+                                                    <Icons.Users size={28} className="text-emerald-400" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 text-left">
+                                                <p className="text-white font-semibold text-lg">{sub.name}</p>
+                                                <p className="text-slate-400 text-base">
+                                                    {sub.location && <span className="text-emerald-400">{sub.location} • </span>}
+                                                    {isCompleted ? 'Voltooi' : 'Tik om te evalueer'}
+                                                </p>
+                                            </div>
+                                            {!isCompleted && (
+                                                <Icons.ArrowRight size={24} className="text-slate-500" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Offline Queue Indicator */}
                     {OfflineQueue.count() > 0 && (
                         <div className="mx-6 mt-6 p-4 bg-amber-600/20 border border-amber-600/30 rounded-xl">
@@ -1553,6 +1945,384 @@
             );
         };
         
+        // ============================================
+        // MELKSTAL EVALUATION SCREEN
+        // ============================================
+        const MelkstalEvaluationScreen = ({ subject, onSubmit, onBack, isLoading, currentMonth }) => {
+            const [currentSection, setCurrentSection] = useState(0);
+            const [answers, setAnswers] = useState({});
+            const [showConfirm, setShowConfirm] = useState(false);
+
+            const section = MELKSTAL_SECTIONS[currentSection];
+            const isLastSection = currentSection === MELKSTAL_SECTIONS.length - 1;
+
+            // Check if a conditional question should be shown
+            const shouldShowQuestion = (question) => {
+                if (!question.conditional) return true;
+                const [depId, depValue] = question.conditional.split(':');
+                return answers[depId] === depValue;
+            };
+
+            // Get visible questions for current section
+            const visibleQuestions = section.questions.filter(shouldShowQuestion);
+
+            // Check if section is complete
+            const isSectionComplete = () => {
+                return visibleQuestions.every(q => {
+                    const answer = answers[q.id];
+                    if (q.type === 'text' || q.type === 'textarea') {
+                        // Text fields are optional unless it's a conditional that's shown
+                        if (q.conditional) {
+                            const [depId, depValue] = q.conditional.split(':');
+                            if (answers[depId] === depValue) return !!answer;
+                        }
+                        return true;
+                    }
+                    if (q.type === 'multirating') {
+                        return q.items.every((_, i) => answers[`${q.id}_${i}`] > 0);
+                    }
+                    return !!answer;
+                });
+            };
+
+            // Update answer
+            const setAnswer = (questionId, value) => {
+                setAnswers(prev => ({ ...prev, [questionId]: value }));
+            };
+
+            // Navigate sections
+            const nextSection = () => {
+                if (isLastSection) {
+                    setShowConfirm(true);
+                } else {
+                    setCurrentSection(prev => prev + 1);
+                    window.scrollTo(0, 0);
+                }
+            };
+
+            const prevSection = () => {
+                if (currentSection > 0) {
+                    setCurrentSection(prev => prev - 1);
+                    window.scrollTo(0, 0);
+                }
+            };
+
+            // Submit
+            const handleSubmit = () => {
+                const data = { ...answers };
+                onSubmit(data);
+            };
+
+            // Format month for display
+            const formatMonth = (monthId) => {
+                if (!monthId) return '';
+                const [year, month] = monthId.split('-');
+                const months = ['Januarie', 'Februarie', 'Maart', 'April', 'Mei', 'Junie',
+                               'Julie', 'Augustus', 'September', 'Oktober', 'November', 'Desember'];
+                return `${months[parseInt(month) - 1]} ${year}`;
+            };
+
+            // Render question based on type
+            const renderQuestion = (question, index) => {
+                const answer = answers[question.id];
+
+                switch (question.type) {
+                    case 'yesno':
+                        return (
+                            <div key={question.id} className="bg-gradient-card rounded-xl p-5 mb-4">
+                                <p className="text-white font-medium text-lg mb-4">{question.title}</p>
+                                {question.hint && <p className="text-slate-400 text-sm mb-4">{question.hint}</p>}
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setAnswer(question.id, 'Ja')}
+                                        className={`flex-1 py-4 rounded-xl text-lg font-medium transition ${
+                                            answer === 'Ja'
+                                                ? 'bg-emerald-600 text-white'
+                                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                        }`}
+                                    >
+                                        Ja
+                                    </button>
+                                    <button
+                                        onClick={() => setAnswer(question.id, 'Nee')}
+                                        className={`flex-1 py-4 rounded-xl text-lg font-medium transition ${
+                                            answer === 'Nee'
+                                                ? 'bg-red-600 text-white'
+                                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                        }`}
+                                    >
+                                        Nee
+                                    </button>
+                                </div>
+                            </div>
+                        );
+
+                    case 'yesnoNA':
+                        return (
+                            <div key={question.id} className="bg-gradient-card rounded-xl p-5 mb-4">
+                                <p className="text-white font-medium text-lg mb-4">{question.title}</p>
+                                {question.hint && <p className="text-slate-400 text-sm mb-4">{question.hint}</p>}
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setAnswer(question.id, 'Ja')}
+                                        className={`flex-1 py-4 rounded-xl text-base font-medium transition ${
+                                            answer === 'Ja'
+                                                ? 'bg-emerald-600 text-white'
+                                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                        }`}
+                                    >
+                                        Ja
+                                    </button>
+                                    <button
+                                        onClick={() => setAnswer(question.id, 'Nee')}
+                                        className={`flex-1 py-4 rounded-xl text-base font-medium transition ${
+                                            answer === 'Nee'
+                                                ? 'bg-red-600 text-white'
+                                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                        }`}
+                                    >
+                                        Nee
+                                    </button>
+                                    <button
+                                        onClick={() => setAnswer(question.id, 'N/A')}
+                                        className={`flex-1 py-4 rounded-xl text-base font-medium transition ${
+                                            answer === 'N/A'
+                                                ? 'bg-slate-500 text-white'
+                                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                        }`}
+                                    >
+                                        N/A
+                                    </button>
+                                </div>
+                            </div>
+                        );
+
+                    case 'choice':
+                        return (
+                            <div key={question.id} className="bg-gradient-card rounded-xl p-5 mb-4">
+                                <p className="text-white font-medium text-lg mb-4">{question.title}</p>
+                                <div className="space-y-2">
+                                    {question.options.map((option, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => setAnswer(question.id, option)}
+                                            className={`w-full py-4 px-4 rounded-xl text-left text-base font-medium transition ${
+                                                answer === option
+                                                    ? 'bg-amber-600 text-white'
+                                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                            }`}
+                                        >
+                                            {option}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+
+                    case 'rating':
+                        return (
+                            <div key={question.id} className="bg-gradient-card rounded-xl p-5 mb-4">
+                                <p className="text-white font-medium text-lg mb-4">{question.title}</p>
+                                <div className="space-y-2">
+                                    {question.labels.map((label, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => setAnswer(question.id, i + 1)}
+                                            className={`w-full py-4 px-4 rounded-xl text-left transition flex items-center gap-3 ${
+                                                answer === i + 1
+                                                    ? 'bg-amber-600 text-white'
+                                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                            }`}
+                                        >
+                                            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                                answer === i + 1 ? 'bg-white/20' : 'bg-slate-600'
+                                            }`}>{i + 1}</span>
+                                            <span className="text-base">{label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+
+                    case 'multirating':
+                        return (
+                            <div key={question.id} className="bg-gradient-card rounded-xl p-5 mb-4">
+                                <p className="text-white font-medium text-lg mb-4">{question.title}</p>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr>
+                                                <th className="text-left text-slate-400 text-sm pb-3"></th>
+                                                {question.labels.map((label, i) => (
+                                                    <th key={i} className="text-center text-slate-400 text-xs pb-3 px-1 min-w-[50px]">
+                                                        {i + 1}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {question.items.map((item, itemIndex) => (
+                                                <tr key={itemIndex} className="border-t border-slate-700">
+                                                    <td className="text-slate-300 text-sm py-3 pr-3">{item}</td>
+                                                    {question.labels.map((_, ratingIndex) => (
+                                                        <td key={ratingIndex} className="text-center py-3">
+                                                            <button
+                                                                onClick={() => setAnswer(`${question.id}_${itemIndex}`, ratingIndex + 1)}
+                                                                className={`w-10 h-10 rounded-full transition ${
+                                                                    answers[`${question.id}_${itemIndex}`] === ratingIndex + 1
+                                                                        ? 'bg-amber-500 text-white'
+                                                                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                                                                }`}
+                                                            >
+                                                                {ratingIndex + 1}
+                                                            </button>
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    <div className="flex justify-between text-xs text-slate-500 mt-2 px-1">
+                                        <span>{question.labels[0]}</span>
+                                        <span>{question.labels[question.labels.length - 1]}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'text':
+                        return (
+                            <div key={question.id} className="bg-gradient-card rounded-xl p-5 mb-4">
+                                <p className="text-white font-medium text-lg mb-4">{question.title}</p>
+                                <input
+                                    type="text"
+                                    value={answer || ''}
+                                    onChange={(e) => setAnswer(question.id, e.target.value)}
+                                    className="w-full p-4 bg-slate-700 border-2 border-slate-600 rounded-xl text-white text-base focus:outline-none focus:border-amber-500 transition"
+                                    placeholder="Tik hier..."
+                                />
+                            </div>
+                        );
+
+                    case 'textarea':
+                        return (
+                            <div key={question.id} className="bg-gradient-card rounded-xl p-5 mb-4">
+                                <p className="text-white font-medium text-lg mb-4">{question.title}</p>
+                                <textarea
+                                    value={answer || ''}
+                                    onChange={(e) => setAnswer(question.id, e.target.value)}
+                                    rows={4}
+                                    className="w-full p-4 bg-slate-700 border-2 border-slate-600 rounded-xl text-white text-base focus:outline-none focus:border-amber-500 transition resize-none"
+                                    placeholder="Tik hier..."
+                                />
+                            </div>
+                        );
+
+                    default:
+                        return null;
+                }
+            };
+
+            // Confirmation Modal
+            if (showConfirm) {
+                return (
+                    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center p-6 safe-top safe-bottom">
+                        <div className="bg-gradient-card rounded-3xl p-6 max-w-sm w-full animate-fade-in">
+                            <div className="text-center mb-6">
+                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                                    <Icons.Clipboard size={32} className="text-emerald-400" />
+                                </div>
+                                <h2 className="font-display text-xl text-white mb-2">Bevestig Indiening</h2>
+                                <p className="text-slate-400">
+                                    Jy is gereed om die evaluasie vir <span className="text-white font-medium">{subject.name}</span> in te dien vir <span className="text-emerald-400">{formatMonth(currentMonth)}</span>.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowConfirm(false)}
+                                    className="flex-1 py-4 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-600 transition"
+                                >
+                                    Terug
+                                </button>
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={isLoading}
+                                    className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition disabled:opacity-50"
+                                >
+                                    {isLoading ? 'Stoor...' : 'Dien In'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen min-h-[100dvh] pb-32 safe-top safe-bottom">
+                    {/* Header */}
+                    <div className="p-5 flex items-center gap-4 bg-gradient-card sticky top-0 z-10">
+                        <button onClick={onBack} className="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition">
+                            <Icons.ArrowLeft size={24} className="text-slate-300" />
+                        </button>
+                        <div className="flex-1">
+                            <p className="text-emerald-400 text-sm font-medium">{formatMonth(currentMonth)}</p>
+                            <p className="text-white font-display text-xl">{subject.name}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-amber-400 font-bold">{currentSection + 1}/{MELKSTAL_SECTIONS.length}</p>
+                        </div>
+                    </div>
+
+                    {/* Section Progress */}
+                    <div className="px-6 pt-4">
+                        <div className="flex gap-1 mb-2">
+                            {MELKSTAL_SECTIONS.map((s, i) => (
+                                <div
+                                    key={s.id}
+                                    className={`flex-1 h-1.5 rounded-full transition ${
+                                        i < currentSection ? 'bg-emerald-500' :
+                                        i === currentSection ? 'bg-amber-500' : 'bg-slate-700'
+                                    }`}
+                                />
+                            ))}
+                        </div>
+                        <h2 className="text-xl font-semibold text-white mt-4 mb-2">{section.title}</h2>
+                    </div>
+
+                    {/* Questions */}
+                    <div className="px-6 pt-4">
+                        {visibleQuestions.map((q, i) => renderQuestion(q, i))}
+                    </div>
+
+                    {/* Navigation */}
+                    <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent">
+                        <div className="flex gap-3 max-w-lg mx-auto">
+                            {currentSection > 0 && (
+                                <button
+                                    onClick={prevSection}
+                                    className="flex-1 py-4 bg-slate-700 text-white rounded-xl font-medium text-lg hover:bg-slate-600 transition"
+                                >
+                                    Vorige
+                                </button>
+                            )}
+                            <button
+                                onClick={nextSection}
+                                disabled={!isSectionComplete()}
+                                className={`flex-1 py-4 rounded-xl font-bold text-lg transition ${
+                                    isSectionComplete()
+                                        ? 'bg-emerald-600 text-white hover:bg-emerald-500'
+                                        : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                                }`}
+                            >
+                                {isLastSection ? 'Voltooi' : 'Volgende'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // ============================================
         // SUCCESS SCREEN
         // ============================================
