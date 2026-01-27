@@ -523,6 +523,7 @@
             const [selectedSubject, setSelectedSubject] = useState(null);
             const [isOnline, setIsOnline] = useState(navigator.onLine);
             const [isLoading, setIsLoading] = useState(false);
+            const [isInitializing, setIsInitializing] = useState(true);
             const [error, setError] = useState(null);
             const [toast, setToast] = useState(null);
             
@@ -566,9 +567,13 @@
             
             // Auto-login check
             useEffect(() => {
-                if (currentUser) {
-                    loadInitialData();
-                }
+                const initApp = async () => {
+                    if (currentUser) {
+                        await loadInitialData(currentUser);
+                    }
+                    setIsInitializing(false);
+                };
+                initApp();
             }, []);
             
             // Sync offline queue
@@ -726,6 +731,19 @@
             // ============================================
             // RENDER
             // ============================================
+
+            // Wys laai spinner tydens initialisering
+            if (isInitializing) {
+                return (
+                    <div className="min-h-screen min-h-[100dvh] bg-gradient-dark flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="w-12 h-12 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <p className="text-slate-400">Laai...</p>
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <div className="min-h-screen min-h-[100dvh] bg-gradient-dark">
                     {/* Offline Banner */}
@@ -840,7 +858,41 @@
         // ============================================
         const LoginScreen = ({ onLogin, isLoading, error }) => {
             const [code, setCode] = useState('');
+            const [showForgotCode, setShowForgotCode] = useState(false);
+            const [forgotEmail, setForgotEmail] = useState('');
+            const [forgotStatus, setForgotStatus] = useState(null); // 'sending', 'success', 'error'
+            const [forgotError, setForgotError] = useState('');
             const inputRefs = useRef([]);
+
+            const handleForgotCode = async () => {
+                if (!forgotEmail.trim()) {
+                    setForgotError('Voer asseblief jou e-pos adres in');
+                    return;
+                }
+
+                setForgotStatus('sending');
+                setForgotError('');
+
+                try {
+                    const result = await apiCall('forgotCode', { email: forgotEmail.trim() });
+                    if (result.success) {
+                        setForgotStatus('success');
+                    } else {
+                        setForgotStatus('error');
+                        setForgotError(result.error || 'Kon nie e-pos stuur nie');
+                    }
+                } catch (e) {
+                    setForgotStatus('error');
+                    setForgotError('Netwerkfout - probeer weer');
+                }
+            };
+
+            const closeForgotModal = () => {
+                setShowForgotCode(false);
+                setForgotEmail('');
+                setForgotStatus(null);
+                setForgotError('');
+            };
             
             const handleChange = (index, value) => {
                 if (!/^\d*$/.test(value)) return;
@@ -918,8 +970,86 @@
                                 <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                         )}
+
+                        {/* Vergeet Kode */}
+                        {!isLoading && (
+                            <div className="text-center mt-6">
+                                <button
+                                    onClick={() => setShowForgotCode(true)}
+                                    className="text-slate-400 hover:text-amber-400 text-sm transition"
+                                >
+                                    Kode vergeet?
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Vergeet Kode Modal */}
+                        {showForgotCode && (
+                            <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-6 z-50" onClick={closeForgotModal}>
+                                <div className="bg-slate-800 rounded-2xl p-6 max-w-sm w-full animate-fade-in" onClick={e => e.stopPropagation()}>
+                                    {forgotStatus === 'success' ? (
+                                        <div className="text-center">
+                                            <Icons.CheckCircle size={48} className="mx-auto text-emerald-400 mb-4" />
+                                            <h3 className="text-white font-display text-xl mb-3">E-pos Gestuur!</h3>
+                                            <p className="text-slate-400 text-sm mb-6">
+                                                Jou toegangskode is na <span className="text-white">{forgotEmail}</span> gestuur. Kyk ook in jou spam vouer.
+                                            </p>
+                                            <button
+                                                onClick={closeForgotModal}
+                                                className="w-full py-3 bg-gradient-gold text-slate-900 rounded-xl font-bold hover:opacity-90 transition"
+                                            >
+                                                Terug na Aanmeld
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center">
+                                            <Icons.User size={40} className="mx-auto text-amber-400 mb-4" />
+                                            <h3 className="text-white font-display text-xl mb-3">Kode Vergeet?</h3>
+                                            <p className="text-slate-400 text-sm mb-6">
+                                                Voer jou e-pos adres in en ons sal jou kode vir jou stuur.
+                                            </p>
+
+                                            <input
+                                                type="email"
+                                                value={forgotEmail}
+                                                onChange={(e) => setForgotEmail(e.target.value)}
+                                                placeholder="jou@epos.co.za"
+                                                className="w-full p-4 bg-slate-700 border-2 border-slate-600 rounded-xl text-white placeholder-slate-400 mb-4 focus:border-amber-500"
+                                                disabled={forgotStatus === 'sending'}
+                                            />
+
+                                            {forgotError && (
+                                                <p className="text-red-400 text-sm mb-4">{forgotError}</p>
+                                            )}
+
+                                            <button
+                                                onClick={handleForgotCode}
+                                                disabled={forgotStatus === 'sending'}
+                                                className="w-full py-3 bg-gradient-gold text-slate-900 rounded-xl font-bold hover:opacity-90 transition disabled:opacity-50 mb-3"
+                                            >
+                                                {forgotStatus === 'sending' ? (
+                                                    <span className="flex items-center justify-center gap-2">
+                                                        <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+                                                        Stuur...
+                                                    </span>
+                                                ) : (
+                                                    'Stuur My Kode'
+                                                )}
+                                            </button>
+
+                                            <button
+                                                onClick={closeForgotModal}
+                                                className="w-full py-2 text-slate-400 hover:text-white text-sm transition"
+                                            >
+                                                Kanselleer
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    
+
                     {/* Footer */}
                     <div className="mt-auto pt-12 text-center text-slate-500 text-sm animate-fade-in-delay-2">
                         <p>Frikkie Oosthuizen & Seuns (Edms) Bpk</p>
