@@ -688,7 +688,7 @@
                     url.searchParams.append(key, value);
                 }
             });
-            
+
             try {
                 const response = await fetch(url.toString());
                 return await response.json();
@@ -696,6 +696,71 @@
                 console.error('API Error:', error);
                 return { success: false, error: 'Netwerkfout', offline: true };
             }
+        };
+
+        // ============================================
+        // CSV EXPORT HELPER
+        // ============================================
+        const exportToCSV = (data, filename) => {
+            if (!data || data.length === 0) {
+                alert('Geen data om te eksporteer nie');
+                return;
+            }
+
+            // Get headers from first object
+            const headers = Object.keys(data[0]);
+
+            // Build CSV content
+            const csvRows = [];
+            csvRows.push(headers.join(','));
+
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    let val = row[header];
+                    if (val === null || val === undefined) val = '';
+                    if (typeof val === 'object') val = JSON.stringify(val);
+                    // Escape quotes and wrap in quotes if contains comma
+                    val = String(val).replace(/"/g, '""');
+                    if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+                        val = `"${val}"`;
+                    }
+                    return val;
+                });
+                csvRows.push(values.join(','));
+            });
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${filename}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        };
+
+        // Format evaluation data for export
+        const formatEvaluationsForExport = (evaluations, includeComments = true) => {
+            return evaluations.map(e => {
+                const row = {
+                    'Datum': e.submittedAt ? new Date(e.submittedAt).toLocaleDateString('af-ZA') : '',
+                    'Evalueerder': e.evaluatorName || '',
+                    'Onderwerp': e.subjectName || '',
+                    'Gemiddeld': e.averageGrade ? e.averageGrade.toFixed(1) : ''
+                };
+
+                // Add individual question grades
+                QUESTIONS.forEach((q, i) => {
+                    row[`V${i+1} Telling`] = e.grades?.[q.id] || '';
+                    if (includeComments) {
+                        row[`V${i+1} Opmerking`] = e.comments?.[q.id] || '';
+                    }
+                });
+
+                return row;
+            });
         };
         
         // ============================================
@@ -2348,6 +2413,51 @@
         // ============================================
         const CoachDashboard = ({ user, cycle, data, onSelectPerson, onLogout, onRefresh, isLoading }) => {
             const [sortBy, setSortBy] = useState('name'); // 'name', 'score', 'gap'
+            const [showExportModal, setShowExportModal] = useState(false);
+            const [exportLoading, setExportLoading] = useState(false);
+
+            // Export evaluations
+            const handleExport = async (personId = null) => {
+                setExportLoading(true);
+                try {
+                    const result = await apiCall('exportEvaluations', {
+                        cycleId: cycle.id,
+                        requesterId: user.code,
+                        personId: personId // null = all, or specific person
+                    });
+
+                    if (result.success && result.evaluations) {
+                        const exportData = result.evaluations.map(e => {
+                            const row = {
+                                'Siklus': cycle.name,
+                                'Datum': e.submittedAt ? new Date(e.submittedAt).toLocaleDateString('af-ZA') : '',
+                                'Evalueerder': e.evaluatorName || '',
+                                'Onderwerp': e.subjectName || '',
+                                'Self Evaluasie': e.isSelfEval ? 'Ja' : 'Nee'
+                            };
+
+                            QUESTIONS.forEach((q, i) => {
+                                row[`V${i+1}: ${q.title}`] = e.grades?.[q.id] || '';
+                                row[`V${i+1} Opmerking`] = e.comments?.[q.id] || '';
+                            });
+
+                            return row;
+                        });
+
+                        const filename = personId
+                            ? `evaluasies_${personId}_${cycle.name.replace(/\s+/g, '_')}`
+                            : `alle_evaluasies_${cycle.name.replace(/\s+/g, '_')}`;
+                        exportToCSV(exportData, filename);
+                        setShowExportModal(false);
+                    } else {
+                        alert(result.error || 'Kon nie eksporteer nie');
+                    }
+                } catch (e) {
+                    alert('Fout tydens eksport: ' + e.message);
+                } finally {
+                    setExportLoading(false);
+                }
+            };
 
             if (!data) {
                 return (
@@ -2444,15 +2554,65 @@
                         </div>
                     </div>
 
+                    {/* Export Modal */}
+                    {showExportModal && (
+                        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                            <div className="bg-gradient-card rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-xl font-bold text-white">Eksporteer na Excel</h3>
+                                    <button onClick={() => setShowExportModal(false)} className="p-2 hover:bg-slate-700 rounded-lg">
+                                        <Icons.ArrowLeft size={20} className="text-slate-400" />
+                                    </button>
+                                </div>
+
+                                {exportLoading ? (
+                                    <div className="text-center py-8">
+                                        <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                                        <p className="text-slate-400">Eksporteer data...</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <button
+                                            onClick={() => handleExport(null)}
+                                            className="w-full p-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium flex items-center gap-3 transition"
+                                        >
+                                            <Icons.Download size={20} />
+                                            Eksporteer Almal ({data.totalCompleted} evaluasies)
+                                        </button>
+
+                                        <p className="text-slate-400 text-sm pt-2">Of kies 'n spesifieke persoon:</p>
+
+                                        {sortedPersons.map(person => (
+                                            <button
+                                                key={person.subjectId}
+                                                onClick={() => handleExport(person.subjectId)}
+                                                className="w-full p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-between transition"
+                                            >
+                                                <span>{person.subjectName}</span>
+                                                <span className="text-slate-400 text-sm">{person.peerEvalCount + (person.hasSelfEval ? 1 : 0)} eval.</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Action Bar */}
                     <div className="px-6 pt-6 flex gap-3">
                         <button
                             onClick={onRefresh}
                             disabled={isLoading}
-                            className="flex items-center justify-center gap-2 px-5 py-4 bg-slate-800 rounded-xl text-slate-300 text-base font-medium hover:bg-slate-700 transition disabled:opacity-50"
+                            className="flex items-center justify-center gap-2 px-4 py-4 bg-slate-800 rounded-xl text-slate-300 text-base font-medium hover:bg-slate-700 transition disabled:opacity-50"
                         >
                             <Icons.Refresh size={20} className={isLoading ? 'animate-spin' : ''} />
-                            Verfris
+                        </button>
+                        <button
+                            onClick={() => setShowExportModal(true)}
+                            className="flex items-center justify-center gap-2 px-4 py-4 bg-emerald-600/20 border border-emerald-600/30 rounded-xl text-emerald-300 text-base font-medium hover:bg-emerald-600/30 transition"
+                        >
+                            <Icons.Download size={20} />
+                            Excel
                         </button>
                         <div className="flex-1 flex bg-slate-800 rounded-xl overflow-hidden">
                             <button
@@ -2574,6 +2734,31 @@
                 return `${hours}u ${minutes}m`;
             };
 
+            // Export my evaluations
+            const handleExport = () => {
+                if (evaluations.length === 0) {
+                    alert('Geen evaluasies om te eksporteer nie');
+                    return;
+                }
+
+                const exportData = evaluations.map(e => {
+                    const row = {
+                        'Datum': e.submittedAt ? new Date(e.submittedAt).toLocaleDateString('af-ZA') : '',
+                        'Onderwerp': e.subjectName || '',
+                        'Gemiddeld': e.averageGrade ? e.averageGrade.toFixed(1) : ''
+                    };
+
+                    QUESTIONS.forEach((q, i) => {
+                        row[`V${i+1}: ${q.title}`] = e.grades?.[q.id] || '';
+                        row[`V${i+1} Opmerking`] = e.comments?.[q.id] || '';
+                    });
+
+                    return row;
+                });
+
+                exportToCSV(exportData, `my_evaluasies_${new Date().toISOString().split('T')[0]}`);
+            };
+
             return (
                 <div className="min-h-screen min-h-[100dvh] pb-6 safe-top safe-bottom">
                     {/* Header */}
@@ -2585,6 +2770,14 @@
                             <h1 className="text-white font-display text-xl">My Evaluasies</h1>
                             <p className="text-slate-400 text-sm">Geskiedenis van jou voltooide evaluasies</p>
                         </div>
+                        {evaluations.length > 0 && (
+                            <button
+                                onClick={handleExport}
+                                className="p-2 rounded-xl bg-emerald-600/20 border border-emerald-600/30 hover:bg-emerald-600/30 transition"
+                            >
+                                <Icons.Download size={24} className="text-emerald-400" />
+                            </button>
+                        )}
                     </div>
 
                     {/* Info Banner */}
