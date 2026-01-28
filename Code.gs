@@ -95,6 +95,32 @@ function findColumnIndex(headers, ...possibleNames) {
 }
 
 // ============================================
+// HELPER: Normalize cycle ID to YYYY-MM string format
+// ============================================
+function normalizeCycleId(value) {
+  if (!value) return '';
+
+  // Already a string in correct format
+  if (typeof value === 'string') {
+    // If it's an ISO date string, parse and convert
+    if (value.includes('T')) {
+      const parsedDate = new Date(value);
+      return Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
+    }
+    // Already in YYYY-MM format or similar
+    return value;
+  }
+
+  // It's a Date object
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM');
+  }
+
+  // Fallback - convert to string
+  return String(value);
+}
+
+// ============================================
 // GET INITIAL DATA - Kombineer alle data in een call (VINNIG!)
 // ============================================
 function getInitialData(userId, role, monthId) {
@@ -118,8 +144,13 @@ function getInitialData(userId, role, monthId) {
     let cycle = null;
     for (let i = 1; i < cyclesData.length; i++) {
       if (cyclesData[i][cycleActiveIdx] === true || cyclesData[i][cycleActiveIdx] === 'TRUE') {
+        // Normalize cycle ID to YYYY-MM string format
+        const rawCycleId = cyclesData[i][cycleIdIdx];
+        const normalizedCycleId = normalizeCycleId(rawCycleId);
+        console.log('Cycle ID raw:', rawCycleId, 'normalized:', normalizedCycleId);
+
         cycle = {
-          id: cyclesData[i][cycleIdIdx],
+          id: normalizedCycleId,
           name: cyclesData[i][cycleNameIdx],
           startDate: cyclesData[i][cycleStartIdx],
           endDate: cyclesData[i][cycleEndIdx]
@@ -199,25 +230,11 @@ function getInitialData(userId, role, monthId) {
       const row = evalsData[i];
       const rowCycleId = row[eCycleIdx];
 
-      // Handle both exact match and date-based cycle matching
-      // CycleID might be stored as a date or as a string like "2026-01"
-      let cycleMatch = false;
+      // Normalize both cycle IDs and compare
+      const normalizedRowCycleId = normalizeCycleId(rowCycleId);
+      const cycleMatch = (normalizedRowCycleId === cycle.id);
 
-      if (rowCycleId === cycle.id) {
-        cycleMatch = true;
-      } else if (rowCycleId instanceof Date) {
-        // Convert date to YYYY-MM format and compare (uses script timezone)
-        const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
-        cycleMatch = (dateStr === cycle.id);
-      } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-        // ISO date string like "2025-12-31T22:00:00.000Z" - parse and convert with timezone
-        // This handles UTC dates that roll over to next month in local timezone
-        const parsedDate = new Date(rowCycleId);
-        const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
-        cycleMatch = (dateStr === cycle.id);
-      }
-
-      console.log('Row', i, 'CycleID:', rowCycleId, 'Match:', cycleMatch, 'Evaluator:', row[eEvaluatorIdx]);
+      console.log('Row', i, 'CycleID raw:', rowCycleId, 'normalized:', normalizedRowCycleId, 'cycle.id:', cycle.id, 'Match:', cycleMatch, 'Evaluator:', row[eEvaluatorIdx]);
 
       if (!cycleMatch) continue;
 
@@ -356,19 +373,9 @@ function buildCoachSummary(cycleId, evalsData, evalHeaders, subjects) {
     for (let i = 1; i < evalsData.length; i++) {
       const rowCycleId = evalsData[i][eCycleIdx];
 
-      // Handle cycle matching with date conversion
-      let cycleMatch = false;
-      if (rowCycleId === cycleId) {
-        cycleMatch = true;
-      } else if (rowCycleId instanceof Date) {
-        const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
-        cycleMatch = (dateStr === cycleId);
-      } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-        // Parse ISO string and convert with timezone
-        const parsedDate = new Date(rowCycleId);
-        const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
-        cycleMatch = (dateStr === cycleId);
-      }
+      // Normalize and compare cycle IDs
+      const normalizedRowCycleId = normalizeCycleId(rowCycleId);
+      const cycleMatch = (normalizedRowCycleId === cycleId);
 
       if (cycleMatch && evalsData[i][eSubjectIdx] === subject.id) {
         subjectEvals.push(evalsData[i]);
@@ -565,19 +572,9 @@ function getEvaluationStatus(userId, cycleId) {
     const row = data[i];
     const rowCycleId = row[cycleIdx];
 
-    // Handle cycle matching
-    let cycleMatch = false;
-    if (rowCycleId === cycleId) {
-      cycleMatch = true;
-    } else if (rowCycleId instanceof Date) {
-      const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
-      cycleMatch = (dateStr === cycleId);
-    } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-      // Parse ISO string and convert with timezone
-      const parsedDate = new Date(rowCycleId);
-      const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
-      cycleMatch = (dateStr === cycleId);
-    }
+    // Normalize and compare cycle IDs
+    const normalizedRowCycleId = normalizeCycleId(rowCycleId);
+    const cycleMatch = (normalizedRowCycleId === cycleId);
 
     if (cycleMatch && row[evaluatorIdx] === userId) {
       completedSubjects.push(row[subjectIdx]);
@@ -658,19 +655,9 @@ function getUserEvaluations(userId, cycleId) {
     const row = data[i];
     const rowCycleId = row[cycleIdx];
 
-    // Handle cycle matching
-    let cycleMatch = false;
-    if (rowCycleId === cycleId) {
-      cycleMatch = true;
-    } else if (rowCycleId instanceof Date) {
-      const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
-      cycleMatch = (dateStr === cycleId);
-    } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-      // Parse ISO string and convert with timezone
-      const parsedDate = new Date(rowCycleId);
-      const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
-      cycleMatch = (dateStr === cycleId);
-    }
+    // Normalize and compare cycle IDs
+    const normalizedRowCycleId = normalizeCycleId(rowCycleId);
+    const cycleMatch = (normalizedRowCycleId === cycleId);
 
     if (!cycleMatch || row[evaluatorIdx] !== userId) continue;
 
@@ -867,19 +854,9 @@ function getPersonDetail(subjectId, cycleId, requesterId) {
     const row = data[i];
     const rowCycleId = row[cycleIdx];
 
-    // Handle cycle matching
-    let cycleMatch = false;
-    if (rowCycleId === cycleId) {
-      cycleMatch = true;
-    } else if (rowCycleId instanceof Date) {
-      const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
-      cycleMatch = (dateStr === cycleId);
-    } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-      // Parse ISO string and convert with timezone
-      const parsedDate = new Date(rowCycleId);
-      const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
-      cycleMatch = (dateStr === cycleId);
-    }
+    // Normalize and compare cycle IDs
+    const normalizedRowCycleId = normalizeCycleId(rowCycleId);
+    const cycleMatch = (normalizedRowCycleId === cycleId);
 
     if (!cycleMatch || row[subjectIdx] !== subjectId) continue;
 
@@ -950,19 +927,9 @@ function exportEvaluations(cycleId, requesterId, personId) {
     const row = data[i];
     const rowCycleId = row[cycleIdx];
 
-    // Handle cycle matching
-    let cycleMatch = false;
-    if (rowCycleId === cycleId) {
-      cycleMatch = true;
-    } else if (rowCycleId instanceof Date) {
-      const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
-      cycleMatch = (dateStr === cycleId);
-    } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-      // Parse ISO string and convert with timezone
-      const parsedDate = new Date(rowCycleId);
-      const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
-      cycleMatch = (dateStr === cycleId);
-    }
+    // Normalize and compare cycle IDs
+    const normalizedRowCycleId = normalizeCycleId(rowCycleId);
+    const cycleMatch = (normalizedRowCycleId === cycleId);
 
     if (!cycleMatch) continue;
     if (personId && row[subjectIdx] !== personId) continue;
