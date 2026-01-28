@@ -3040,13 +3040,17 @@
                                                 </button>
 
                                                 {isOpen && answerKeys.length > 0 && (
-                                                    <div className="mt-4 pt-4 border-t border-slate-700 space-y-2">
-                                                        {answerKeys.map(key => (
-                                                            <div key={key} className="flex justify-between text-sm">
-                                                                <span className="text-slate-400">{key}</span>
-                                                                <span className="text-white">{String(evalAnswers[key])}</span>
-                                                            </div>
-                                                        ))}
+                                                    <div className="mt-4 pt-4 border-t border-slate-700 space-y-3">
+                                                        {answerKeys.map(key => {
+                                                            const question = MELKSTAL_QUESTIONS.find(q => q.id === key);
+                                                            const questionTitle = question?.title || key;
+                                                            return (
+                                                                <div key={key} className="text-sm">
+                                                                    <p className="text-slate-400 mb-1">{questionTitle}</p>
+                                                                    <p className="text-white bg-slate-800/50 rounded-lg px-3 py-2">{String(evalAnswers[key])}</p>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
 
