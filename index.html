@@ -364,7 +364,7 @@
         // KONFIGURASIE
         // ============================================
         const API_URL = 'https://script.google.com/macros/s/AKfycbxZqU1Q_qyYmR27xJF0sPcpE7ykL9CNZH6au_wg__y_7IKVr5DggjCGHMdY3xEGlPB_/exec';
-        const APP_VERSION = '1.3.0';
+        const APP_VERSION = '1.3.1';
         const CACHE_KEY = 'leierskap_cache';
         const USER_KEY = 'leierskap_user';
         const DASHBOARD_CACHE_KEY = 'leierskap_dashboard_cache';
@@ -870,6 +870,9 @@
                         const data = JSON.parse(cached);
                         // Check if cache is less than 24 hours old
                         if (data.timestamp && (Date.now() - data.timestamp) < 24 * 60 * 60 * 1000) {
+                            console.log('=== Loading cached data ===');
+                            console.log('Cached myEvaluations:', data.myEvaluations);
+                            console.log('Cached myMelkstalEvaluations:', data.myMelkstalEvaluations);
                             return data;
                         }
                     }
@@ -877,6 +880,13 @@
                     console.log('Cache lees fout:', e);
                 }
                 return null;
+            };
+
+            // Clear cache - useful for debugging
+            const clearCache = (userCode) => {
+                const cacheKey = `${DASHBOARD_CACHE_KEY}_${userCode}`;
+                localStorage.removeItem(cacheKey);
+                console.log('Cache cleared for user:', userCode);
             };
 
             // Save dashboard data to cache
@@ -892,16 +902,45 @@
                 }
             };
 
+            // Normalize evaluation data to expected format (handle PascalCase vs camelCase)
+            const normalizeEvaluation = (e) => {
+                if (!e) return e;
+                return {
+                    ...e,
+                    id: e.id || e.ID,
+                    subjectId: e.subjectId || e.SubjectId || e.subjectCode || e.SubjectCode,
+                    subjectName: e.subjectName || e.SubjectName,
+                    subjectLocation: e.subjectLocation || e.SubjectLocation || e.location || e.Location,
+                    submittedAt: e.submittedAt || e.SubmittedAt,
+                    evaluatorCode: e.evaluatorCode || e.EvaluatorCode,
+                    evaluatorName: e.evaluatorName || e.EvaluatorName,
+                    cycleId: e.cycleId || e.CycleId || e.CycleID,
+                    month: e.month || e.monthId || e.MonthId || e.MonthID,
+                    grades: e.grades || e.Grades || {},
+                    comments: e.comments || e.Comments || {},
+                    answers: e.answers || e.Answers || {},
+                    averageGrade: e.averageGrade || e.AverageGrade || e.average || e.Average
+                };
+            };
+
             // Apply data to state
             const applyDashboardData = (data) => {
                 if (data.cycle) setCurrentCycle(data.cycle);
                 if (data.currentMonth) setCurrentMonth(data.currentMonth);
                 if (data.subjects) setSubjects(data.subjects);
                 if (data.completedSubjects) setCompletedSubjects(data.completedSubjects);
-                if (data.myEvaluations) setMyEvaluations(data.myEvaluations);
+                if (data.myEvaluations) {
+                    const normalized = data.myEvaluations.map(normalizeEvaluation);
+                    console.log('Normalized myEvaluations:', normalized);
+                    setMyEvaluations(normalized);
+                }
                 if (data.subordinates) setSubordinates(data.subordinates);
                 if (data.completedSubordinates) setCompletedSubordinates(data.completedSubordinates);
-                if (data.myMelkstalEvaluations) setMyMelkstalEvaluations(data.myMelkstalEvaluations);
+                if (data.myMelkstalEvaluations) {
+                    const normalized = data.myMelkstalEvaluations.map(normalizeEvaluation);
+                    console.log('Normalized myMelkstalEvaluations:', normalized);
+                    setMyMelkstalEvaluations(normalized);
+                }
                 if (data.coachData) setCoachData(data.coachData);
             };
 
@@ -934,18 +973,30 @@
                     });
 
                     if (result.success) {
-                        // Build data object
+                        // Debug logging to diagnose data loading
+                        console.log('=== API Response Debug ===');
+                        console.log('Full result:', result);
+                        console.log('myEvaluations:', result.myEvaluations);
+                        console.log('evaluations:', result.evaluations);
+                        console.log('myMelkstalEvaluations:', result.myMelkstalEvaluations);
+                        console.log('melkstalEvaluations:', result.melkstalEvaluations);
+
+                        // Build data object - handle both naming conventions
                         const freshData = {
                             cycle: result.cycle,
                             currentMonth: monthId,
                             subjects: result.subjects || [],
                             completedSubjects: result.completedSubjects || [],
-                            myEvaluations: result.myEvaluations || [],
+                            // Support both myEvaluations and evaluations naming
+                            myEvaluations: result.myEvaluations || result.evaluations || [],
                             subordinates: result.subordinates || [],
                             completedSubordinates: result.completedSubordinates || [],
-                            myMelkstalEvaluations: result.myMelkstalEvaluations || [],
+                            // Support both myMelkstalEvaluations and melkstalEvaluations naming
+                            myMelkstalEvaluations: result.myMelkstalEvaluations || result.melkstalEvaluations || [],
                             coachData: result.coachData || null
                         };
+
+                        console.log('Processed freshData:', freshData);
 
                         // Step 3: Apply fresh data and cache it
                         applyDashboardData(freshData);
