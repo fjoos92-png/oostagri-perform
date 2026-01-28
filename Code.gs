@@ -121,6 +121,16 @@ function normalizeCycleId(value) {
 }
 
 // ============================================
+// HELPER: Compare values as strings (handles number/string mismatch)
+// ============================================
+function compareAsString(val1, val2) {
+  if (val1 === null || val1 === undefined || val2 === null || val2 === undefined) {
+    return false;
+  }
+  return String(val1).trim() === String(val2).trim();
+}
+
+// ============================================
 // GET INITIAL DATA - Kombineer alle data in een call (VINNIG!)
 // ============================================
 function getInitialData(userId, role, monthId) {
@@ -193,7 +203,7 @@ function getInitialData(userId, role, monthId) {
       }
 
       // Subordinates (middelvlak under this supervisor)
-      if (userRole === 'middelvlak' && row[uSupervisorIdx] === userId) {
+      if (userRole === 'middelvlak' && compareAsString(row[uSupervisorIdx], userId)) {
         subordinates.push({
           id: userCode,
           name: row[uNameIdx],
@@ -238,7 +248,7 @@ function getInitialData(userId, role, monthId) {
 
       if (!cycleMatch) continue;
 
-      if (row[eEvaluatorIdx] === userId) {
+      if (compareAsString(row[eEvaluatorIdx], userId)) {
         completedSubjects.push(row[eSubjectIdx]);
 
         // Build evaluation object for history
@@ -302,7 +312,7 @@ function getInitialData(userId, role, monthId) {
 
         console.log('Melkstal row', i, '- Evaluator:', rowEvaluator, 'Month:', rowMonth);
 
-        if (rowEvaluator !== userId) continue;
+        if (!compareAsString(rowEvaluator, userId)) continue;
 
         // Check month match for completed status
         if (rowMonth === monthId) {
@@ -576,7 +586,7 @@ function getEvaluationStatus(userId, cycleId) {
     const normalizedRowCycleId = normalizeCycleId(rowCycleId);
     const cycleMatch = (normalizedRowCycleId === cycleId);
 
-    if (cycleMatch && row[evaluatorIdx] === userId) {
+    if (cycleMatch && compareAsString(row[evaluatorIdx], userId)) {
       completedSubjects.push(row[subjectIdx]);
     }
   }
@@ -659,7 +669,7 @@ function getUserEvaluations(userId, cycleId) {
     const normalizedRowCycleId = normalizeCycleId(rowCycleId);
     const cycleMatch = (normalizedRowCycleId === cycleId);
 
-    if (!cycleMatch || row[evaluatorIdx] !== userId) continue;
+    if (!cycleMatch || !compareAsString(row[evaluatorIdx], userId)) continue;
 
     const evalObj = {
       id: row[idIdx],
@@ -765,7 +775,7 @@ function getCycleSummary(cycleId, requesterId) {
 
   let isCoach = false;
   for (let i = 1; i < usersData.length; i++) {
-    if (usersData[i][uCodeIdx] === requesterId && usersData[i][uRoleIdx] === 'coach') {
+    if (compareAsString(usersData[i][uCodeIdx], requesterId) && usersData[i][uRoleIdx] === 'coach') {
       isCoach = true;
       break;
     }
@@ -825,7 +835,7 @@ function getPersonDetail(subjectId, cycleId, requesterId) {
 
   let isCoach = false;
   for (let i = 1; i < usersData.length; i++) {
-    if (usersData[i][uCodeIdx] === requesterId && usersData[i][uRoleIdx] === 'coach') {
+    if (compareAsString(usersData[i][uCodeIdx], requesterId) && usersData[i][uRoleIdx] === 'coach') {
       isCoach = true;
       break;
     }
@@ -897,7 +907,7 @@ function exportEvaluations(cycleId, requesterId, personId) {
 
   let isCoach = false;
   for (let i = 1; i < usersData.length; i++) {
-    if (usersData[i][uCodeIdx] === requesterId && usersData[i][uRoleIdx] === 'coach') {
+    if (compareAsString(usersData[i][uCodeIdx], requesterId) && usersData[i][uRoleIdx] === 'coach') {
       isCoach = true;
       break;
     }
@@ -1031,7 +1041,7 @@ function getSubordinates(supervisorId) {
     const row = data[i];
     if (row[activeIdx] !== true && row[activeIdx] !== 'TRUE') continue;
     if (row[roleIdx] !== 'middelvlak') continue;
-    if (row[supervisorIdx] !== supervisorId) continue;
+    if (!compareAsString(row[supervisorIdx], supervisorId)) continue;
 
     subordinates.push({
       id: row[codeIdx],
@@ -1064,7 +1074,7 @@ function getMelkstalStatus(supervisorId, monthId) {
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (row[evaluatorIdx] === supervisorId && row[monthIdx] === monthId) {
+    if (compareAsString(row[evaluatorIdx], supervisorId) && row[monthIdx] === monthId) {
       completedSubordinates.push(row[subjectIdx]);
     }
   }
@@ -1098,7 +1108,7 @@ function getUserMelkstalEvaluations(userId) {
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (row[evaluatorIdx] !== userId) continue;
+    if (!compareAsString(row[evaluatorIdx], userId)) continue;
 
     let answers = {};
     if (answersIdx >= 0 && row[answersIdx]) {
