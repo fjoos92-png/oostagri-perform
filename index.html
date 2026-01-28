@@ -2761,6 +2761,7 @@
         // ============================================
         const MyEvaluationsScreen = ({ evaluations, melkstalEvaluations = [], onBack, onEdit, onView }) => {
             const [activeTab, setActiveTab] = useState('topbestuur'); // 'topbestuur', 'melkstal'
+            const [expandedMelkstalId, setExpandedMelkstalId] = useState(null);
 
             // Helper to check if evaluation can be edited (within 24 hours)
             const canEdit = (evaluation) => {
@@ -3006,26 +3007,57 @@
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {melkstalEvaluations.map((evaluation, index) => (
-                                        <div
-                                            key={evaluation?.id || index}
-                                            className="bg-gradient-card rounded-2xl p-4 animate-fade-in"
-                                            style={{ animationDelay: `${index * 0.05}s` }}
-                                        >
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <p className="text-white font-medium">{evaluation?.subjectName || 'Onbekend'}</p>
-                                                    <p className="text-emerald-400 text-sm">{evaluation?.location || ''}</p>
-                                                    <p className="text-slate-400 text-sm mt-1">{formatDate(evaluation?.submittedAt)}</p>
+                                    {melkstalEvaluations.map((evaluation, index) => {
+                                        const evalKey = evaluation?.id || index;
+                                        const isOpen = expandedMelkstalId === evalKey;
+                                        const evalAnswers = evaluation?.answers || {};
+                                        const answerKeys = Object.keys(evalAnswers);
+
+                                        return (
+                                            <div
+                                                key={evalKey}
+                                                className="bg-gradient-card rounded-2xl p-4 animate-fade-in"
+                                                style={{ animationDelay: `${index * 0.05}s` }}
+                                            >
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div>
+                                                        <p className="text-white font-medium">{evaluation?.subjectName || 'Onbekend'}</p>
+                                                        <p className="text-emerald-400 text-sm">{evaluation?.location || ''}</p>
+                                                        <p className="text-slate-400 text-sm mt-1">{formatDate(evaluation?.submittedAt)}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="px-3 py-1 bg-emerald-600/20 text-emerald-400 text-sm font-medium rounded-lg">
+                                                            {formatMonth(evaluation?.month)}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <span className="px-3 py-1 bg-emerald-600/20 text-emerald-400 text-sm font-medium rounded-lg">
-                                                        {formatMonth(evaluation?.month)}
-                                                    </span>
-                                                </div>
+
+                                                <button
+                                                    onClick={() => setExpandedMelkstalId(isOpen ? null : evalKey)}
+                                                    className="w-full py-2 bg-slate-800 text-slate-300 rounded-xl text-sm hover:bg-slate-700 transition"
+                                                >
+                                                    {isOpen ? 'Verberg' : 'Bekyk'}
+                                                </button>
+
+                                                {isOpen && answerKeys.length > 0 && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-700 space-y-2">
+                                                        {answerKeys.map(key => (
+                                                            <div key={key} className="flex justify-between text-sm">
+                                                                <span className="text-slate-400">{key}</span>
+                                                                <span className="text-white">{String(evalAnswers[key])}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {isOpen && answerKeys.length === 0 && (
+                                                    <p className="mt-4 pt-4 border-t border-slate-700 text-slate-500 text-sm text-center">
+                                                        Geen antwoorde beskikbaar nie
+                                                    </p>
+                                                )}
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
