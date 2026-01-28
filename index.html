@@ -2471,12 +2471,18 @@
             // Export evaluations
             const handleExport = async (personId = null) => {
                 setExportLoading(true);
+                console.log('=== Export Debug ===');
+                console.log('cycle.id:', cycle.id);
+                console.log('user.code:', user.code);
+                console.log('personId:', personId);
                 try {
                     const result = await apiCall('exportEvaluations', {
                         cycleId: cycle.id,
                         requesterId: user.code,
                         personId: personId // null = all, or specific person
                     });
+                    console.log('Export API result:', result);
+                    console.log('evaluations count:', result.evaluations?.length);
 
                     if (result.success && result.evaluations) {
                         const exportData = result.evaluations.map(e => {
