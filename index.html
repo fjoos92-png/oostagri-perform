@@ -688,7 +688,7 @@
                     url.searchParams.append(key, value);
                 }
             });
-            
+
             try {
                 const response = await fetch(url.toString());
                 return await response.json();
@@ -696,6 +696,71 @@
                 console.error('API Error:', error);
                 return { success: false, error: 'Netwerkfout', offline: true };
             }
+        };
+
+        // ============================================
+        // CSV EXPORT HELPER
+        // ============================================
+        const exportToCSV = (data, filename) => {
+            if (!data || data.length === 0) {
+                alert('Geen data om te eksporteer nie');
+                return;
+            }
+
+            // Get headers from first object
+            const headers = Object.keys(data[0]);
+
+            // Build CSV content
+            const csvRows = [];
+            csvRows.push(headers.join(','));
+
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    let val = row[header];
+                    if (val === null || val === undefined) val = '';
+                    if (typeof val === 'object') val = JSON.stringify(val);
+                    // Escape quotes and wrap in quotes if contains comma
+                    val = String(val).replace(/"/g, '""');
+                    if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+                        val = `"${val}"`;
+                    }
+                    return val;
+                });
+                csvRows.push(values.join(','));
+            });
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${filename}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        };
+
+        // Format evaluation data for export
+        const formatEvaluationsForExport = (evaluations, includeComments = true) => {
+            return evaluations.map(e => {
+                const row = {
+                    'Datum': e.submittedAt ? new Date(e.submittedAt).toLocaleDateString('af-ZA') : '',
+                    'Evalueerder': e.evaluatorName || '',
+                    'Onderwerp': e.subjectName || '',
+                    'Gemiddeld': e.averageGrade ? e.averageGrade.toFixed(1) : ''
+                };
+
+                // Add individual question grades
+                QUESTIONS.forEach((q, i) => {
+                    row[`V${i+1} Telling`] = e.grades?.[q.id] || '';
+                    if (includeComments) {
+                        row[`V${i+1} Opmerking`] = e.comments?.[q.id] || '';
+                    }
+                });
+
+                return row;
+            });
         };
         
         // ============================================
@@ -1230,6 +1295,7 @@
                     {screen === 'myEvaluations' && (
                         <MyEvaluationsScreen
                             evaluations={myEvaluations}
+                            melkstalEvaluations={myMelkstalEvaluations}
                             onBack={() => setScreen('dashboard')}
                             onEdit={(evaluation) => {
                                 setSelectedEvaluationForEdit(evaluation);
@@ -2348,6 +2414,51 @@
         // ============================================
         const CoachDashboard = ({ user, cycle, data, onSelectPerson, onLogout, onRefresh, isLoading }) => {
             const [sortBy, setSortBy] = useState('name'); // 'name', 'score', 'gap'
+            const [showExportModal, setShowExportModal] = useState(false);
+            const [exportLoading, setExportLoading] = useState(false);
+
+            // Export evaluations
+            const handleExport = async (personId = null) => {
+                setExportLoading(true);
+                try {
+                    const result = await apiCall('exportEvaluations', {
+                        cycleId: cycle.id,
+                        requesterId: user.code,
+                        personId: personId // null = all, or specific person
+                    });
+
+                    if (result.success && result.evaluations) {
+                        const exportData = result.evaluations.map(e => {
+                            const row = {
+                                'Siklus': cycle.name,
+                                'Datum': e.submittedAt ? new Date(e.submittedAt).toLocaleDateString('af-ZA') : '',
+                                'Evalueerder': e.evaluatorName || '',
+                                'Onderwerp': e.subjectName || '',
+                                'Self Evaluasie': e.isSelfEval ? 'Ja' : 'Nee'
+                            };
+
+                            QUESTIONS.forEach((q, i) => {
+                                row[`V${i+1}: ${q.title}`] = e.grades?.[q.id] || '';
+                                row[`V${i+1} Opmerking`] = e.comments?.[q.id] || '';
+                            });
+
+                            return row;
+                        });
+
+                        const filename = personId
+                            ? `evaluasies_${personId}_${cycle.name.replace(/\s+/g, '_')}`
+                            : `alle_evaluasies_${cycle.name.replace(/\s+/g, '_')}`;
+                        exportToCSV(exportData, filename);
+                        setShowExportModal(false);
+                    } else {
+                        alert(result.error || 'Kon nie eksporteer nie');
+                    }
+                } catch (e) {
+                    alert('Fout tydens eksport: ' + e.message);
+                } finally {
+                    setExportLoading(false);
+                }
+            };
 
             if (!data) {
                 return (
@@ -2444,15 +2555,65 @@
                         </div>
                     </div>
 
+                    {/* Export Modal */}
+                    {showExportModal && (
+                        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                            <div className="bg-gradient-card rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-xl font-bold text-white">Eksporteer na Excel</h3>
+                                    <button onClick={() => setShowExportModal(false)} className="p-2 hover:bg-slate-700 rounded-lg">
+                                        <Icons.ArrowLeft size={20} className="text-slate-400" />
+                                    </button>
+                                </div>
+
+                                {exportLoading ? (
+                                    <div className="text-center py-8">
+                                        <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                                        <p className="text-slate-400">Eksporteer data...</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <button
+                                            onClick={() => handleExport(null)}
+                                            className="w-full p-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium flex items-center gap-3 transition"
+                                        >
+                                            <Icons.Download size={20} />
+                                            Eksporteer Almal ({data.totalCompleted} evaluasies)
+                                        </button>
+
+                                        <p className="text-slate-400 text-sm pt-2">Of kies 'n spesifieke persoon:</p>
+
+                                        {sortedPersons.map(person => (
+                                            <button
+                                                key={person.subjectId}
+                                                onClick={() => handleExport(person.subjectId)}
+                                                className="w-full p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-between transition"
+                                            >
+                                                <span>{person.subjectName}</span>
+                                                <span className="text-slate-400 text-sm">{person.peerEvalCount + (person.hasSelfEval ? 1 : 0)} eval.</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Action Bar */}
                     <div className="px-6 pt-6 flex gap-3">
                         <button
                             onClick={onRefresh}
                             disabled={isLoading}
-                            className="flex items-center justify-center gap-2 px-5 py-4 bg-slate-800 rounded-xl text-slate-300 text-base font-medium hover:bg-slate-700 transition disabled:opacity-50"
+                            className="flex items-center justify-center gap-2 px-4 py-4 bg-slate-800 rounded-xl text-slate-300 text-base font-medium hover:bg-slate-700 transition disabled:opacity-50"
                         >
                             <Icons.Refresh size={20} className={isLoading ? 'animate-spin' : ''} />
-                            Verfris
+                        </button>
+                        <button
+                            onClick={() => setShowExportModal(true)}
+                            className="flex items-center justify-center gap-2 px-4 py-4 bg-emerald-600/20 border border-emerald-600/30 rounded-xl text-emerald-300 text-base font-medium hover:bg-emerald-600/30 transition"
+                        >
+                            <Icons.Download size={20} />
+                            Excel
                         </button>
                         <div className="flex-1 flex bg-slate-800 rounded-xl overflow-hidden">
                             <button
@@ -2539,7 +2700,9 @@
         // ============================================
         // MY EVALUATIONS SCREEN (History)
         // ============================================
-        const MyEvaluationsScreen = ({ evaluations, onBack, onEdit, onView }) => {
+        const MyEvaluationsScreen = ({ evaluations, melkstalEvaluations = [], onBack, onEdit, onView }) => {
+            const [activeTab, setActiveTab] = useState('topbestuur'); // 'topbestuur', 'melkstal'
+
             // Helper to check if evaluation can be edited (within 24 hours)
             const canEdit = (evaluation) => {
                 if (!evaluation.submittedAt) return false;
@@ -2562,6 +2725,14 @@
                 });
             };
 
+            // Format month for display
+            const formatMonth = (monthId) => {
+                if (!monthId) return '';
+                const [year, month] = monthId.split('-');
+                const months = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Des'];
+                return `${months[parseInt(month) - 1]} ${year}`;
+            };
+
             // Calculate time remaining for edit
             const getTimeRemaining = (evaluation) => {
                 if (!evaluation.submittedAt) return null;
@@ -2574,6 +2745,67 @@
                 return `${hours}u ${minutes}m`;
             };
 
+            // Export topbestuur evaluations
+            const handleExportTopbestuur = () => {
+                if (evaluations.length === 0) {
+                    alert('Geen evaluasies om te eksporteer nie');
+                    return;
+                }
+
+                const exportData = evaluations.map(e => {
+                    const row = {
+                        'Datum': e.submittedAt ? new Date(e.submittedAt).toLocaleDateString('af-ZA') : '',
+                        'Onderwerp': e.subjectName || '',
+                        'Gemiddeld': e.averageGrade ? e.averageGrade.toFixed(1) : ''
+                    };
+
+                    QUESTIONS.forEach((q, i) => {
+                        row[`V${i+1}: ${q.title}`] = e.grades?.[q.id] || '';
+                        row[`V${i+1} Opmerking`] = e.comments?.[q.id] || '';
+                    });
+
+                    return row;
+                });
+
+                exportToCSV(exportData, `topbestuur_evaluasies_${new Date().toISOString().split('T')[0]}`);
+            };
+
+            // Export melkstal evaluations
+            const handleExportMelkstal = () => {
+                if (melkstalEvaluations.length === 0) {
+                    alert('Geen melkstal evaluasies om te eksporteer nie');
+                    return;
+                }
+
+                const exportData = melkstalEvaluations.map(e => {
+                    const row = {
+                        'Maand': formatMonth(e.month),
+                        'Datum Ingedien': e.submittedAt ? new Date(e.submittedAt).toLocaleDateString('af-ZA') : '',
+                        'Werknemer': e.subjectName || '',
+                        'Ligging': e.location || ''
+                    };
+
+                    // Add all answers from the evaluation
+                    if (e.answers) {
+                        MELKSTAL_SECTIONS.forEach(section => {
+                            section.questions.forEach(q => {
+                                const answer = e.answers[q.id];
+                                if (answer !== undefined) {
+                                    row[q.title] = answer;
+                                }
+                            });
+                        });
+                    }
+
+                    return row;
+                });
+
+                exportToCSV(exportData, `melkstal_evaluasies_${new Date().toISOString().split('T')[0]}`);
+            };
+
+            const hasTopbestuur = evaluations.length > 0;
+            const hasMelkstal = melkstalEvaluations.length > 0;
+
             return (
                 <div className="min-h-screen min-h-[100dvh] pb-6 safe-top safe-bottom">
                     {/* Header */}
@@ -2583,9 +2815,38 @@
                         </button>
                         <div className="flex-1">
                             <h1 className="text-white font-display text-xl">My Evaluasies</h1>
-                            <p className="text-slate-400 text-sm">Geskiedenis van jou voltooide evaluasies</p>
+                            <p className="text-slate-400 text-sm">Geskiedenis van voltooide evaluasies</p>
                         </div>
+                        {((activeTab === 'topbestuur' && hasTopbestuur) || (activeTab === 'melkstal' && hasMelkstal)) && (
+                            <button
+                                onClick={activeTab === 'topbestuur' ? handleExportTopbestuur : handleExportMelkstal}
+                                className="p-2 rounded-xl bg-emerald-600/20 border border-emerald-600/30 hover:bg-emerald-600/30 transition"
+                                title="Eksporteer na Excel"
+                            >
+                                <Icons.Download size={24} className="text-emerald-400" />
+                            </button>
+                        )}
                     </div>
+
+                    {/* Tabs - only show if both types exist */}
+                    {(hasTopbestuur || hasMelkstal) && (
+                        <div className="px-6 pt-4">
+                            <div className="flex bg-slate-800 rounded-xl overflow-hidden">
+                                <button
+                                    onClick={() => setActiveTab('topbestuur')}
+                                    className={`flex-1 py-3 text-sm font-medium transition ${activeTab === 'topbestuur' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    Topbestuur ({evaluations.length})
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('melkstal')}
+                                    className={`flex-1 py-3 text-sm font-medium transition ${activeTab === 'melkstal' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    Melkstal ({melkstalEvaluations.length})
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Info Banner */}
                     <div className="mx-6 mt-4 p-4 bg-amber-600/20 border border-amber-600/30 rounded-xl">
@@ -2597,82 +2858,119 @@
                         </div>
                     </div>
 
-                    {/* Evaluations List */}
-                    <div className="px-6 pt-6">
-                        {evaluations.length === 0 ? (
-                            <div className="text-center py-12">
-                                <Icons.Clipboard size={48} className="mx-auto text-slate-600 mb-4" />
-                                <p className="text-slate-400">Geen evaluasies nog voltooi nie</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {evaluations.map((evaluation, index) => {
-                                    const editable = canEdit(evaluation);
-                                    const timeRemaining = getTimeRemaining(evaluation);
+                    {/* Topbestuur Evaluations List */}
+                    {activeTab === 'topbestuur' && (
+                        <div className="px-6 pt-6">
+                            {evaluations.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Icons.Clipboard size={48} className="mx-auto text-slate-600 mb-4" />
+                                    <p className="text-slate-400">Geen topbestuur evaluasies nog voltooi nie</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {evaluations.map((evaluation, index) => {
+                                        const editable = canEdit(evaluation);
+                                        const timeRemaining = getTimeRemaining(evaluation);
 
-                                    return (
+                                        return (
+                                            <div
+                                                key={evaluation.id || index}
+                                                className="bg-gradient-card rounded-2xl p-4 animate-fade-in"
+                                                style={{ animationDelay: `${index * 0.05}s` }}
+                                            >
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div>
+                                                        <p className="text-white font-medium">{evaluation.subjectName}</p>
+                                                        <p className="text-slate-400 text-sm">{formatDate(evaluation.submittedAt)}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-amber-400 font-bold">{evaluation.averageGrade?.toFixed(1) || '-'}</p>
+                                                        <p className="text-slate-500 text-xs">gemiddeld</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Grade Summary */}
+                                                <div className="flex gap-1 mb-3">
+                                                    {QUESTIONS.map((q, i) => {
+                                                        const grade = evaluation.grades?.[q.id] || 0;
+                                                        return (
+                                                            <div
+                                                                key={q.id}
+                                                                className={`flex-1 h-2 rounded-full ${
+                                                                    grade >= 4 ? 'bg-emerald-500' :
+                                                                    grade >= 3 ? 'bg-amber-500' :
+                                                                    grade >= 1 ? 'bg-red-500' : 'bg-slate-700'
+                                                                }`}
+                                                                title={`V${i+1}: ${grade}`}
+                                                            />
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Actions */}
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => onView(evaluation)}
+                                                        className="flex-1 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm hover:bg-slate-700 transition"
+                                                    >
+                                                        Bekyk
+                                                    </button>
+                                                    {editable ? (
+                                                        <button
+                                                            onClick={() => onEdit(evaluation)}
+                                                            className="flex-1 py-2 bg-amber-600 text-white rounded-xl text-sm hover:bg-amber-500 transition flex items-center justify-center gap-2"
+                                                        >
+                                                            <Icons.Clock size={14} />
+                                                            Wysig ({timeRemaining})
+                                                        </button>
+                                                    ) : (
+                                                        <div className="flex-1 py-2 bg-slate-800/50 text-slate-500 rounded-xl text-sm text-center">
+                                                            Wysig tyd verstreke
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Melkstal Evaluations List */}
+                    {activeTab === 'melkstal' && (
+                        <div className="px-6 pt-6">
+                            {melkstalEvaluations.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Icons.Users size={48} className="mx-auto text-slate-600 mb-4" />
+                                    <p className="text-slate-400">Geen melkstal evaluasies nog voltooi nie</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {melkstalEvaluations.map((evaluation, index) => (
                                         <div
                                             key={evaluation.id || index}
                                             className="bg-gradient-card rounded-2xl p-4 animate-fade-in"
                                             style={{ animationDelay: `${index * 0.05}s` }}
                                         >
-                                            <div className="flex items-start justify-between mb-3">
+                                            <div className="flex items-start justify-between">
                                                 <div>
                                                     <p className="text-white font-medium">{evaluation.subjectName}</p>
-                                                    <p className="text-slate-400 text-sm">{formatDate(evaluation.submittedAt)}</p>
+                                                    <p className="text-emerald-400 text-sm">{evaluation.location}</p>
+                                                    <p className="text-slate-400 text-sm mt-1">{formatDate(evaluation.submittedAt)}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-amber-400 font-bold">{evaluation.averageGrade?.toFixed(1) || '-'}</p>
-                                                    <p className="text-slate-500 text-xs">gemiddeld</p>
+                                                    <span className="px-3 py-1 bg-emerald-600/20 text-emerald-400 text-sm font-medium rounded-lg">
+                                                        {formatMonth(evaluation.month)}
+                                                    </span>
                                                 </div>
                                             </div>
-
-                                            {/* Grade Summary */}
-                                            <div className="flex gap-1 mb-3">
-                                                {QUESTIONS.map((q, i) => {
-                                                    const grade = evaluation.grades?.[q.id] || 0;
-                                                    return (
-                                                        <div
-                                                            key={q.id}
-                                                            className={`flex-1 h-2 rounded-full ${
-                                                                grade >= 4 ? 'bg-emerald-500' :
-                                                                grade >= 3 ? 'bg-amber-500' :
-                                                                grade >= 1 ? 'bg-red-500' : 'bg-slate-700'
-                                                            }`}
-                                                            title={`V${i+1}: ${grade}`}
-                                                        />
-                                                    );
-                                                })}
-                                            </div>
-
-                                            {/* Actions */}
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => onView(evaluation)}
-                                                    className="flex-1 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm hover:bg-slate-700 transition"
-                                                >
-                                                    Bekyk
-                                                </button>
-                                                {editable ? (
-                                                    <button
-                                                        onClick={() => onEdit(evaluation)}
-                                                        className="flex-1 py-2 bg-amber-600 text-white rounded-xl text-sm hover:bg-amber-500 transition flex items-center justify-center gap-2"
-                                                    >
-                                                        <Icons.Clock size={14} />
-                                                        Wysig ({timeRemaining})
-                                                    </button>
-                                                ) : (
-                                                    <div className="flex-1 py-2 bg-slate-800/50 text-slate-500 rounded-xl text-sm text-center">
-                                                        Wysig tyd verstreke
-                                                    </div>
-                                                )}
-                                            </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             );
         };
