@@ -933,13 +933,20 @@ function exportEvaluations(cycleId, requesterId, personId) {
 
   const evaluations = [];
 
+  // Normalize the cycleId parameter too
+  const normalizedCycleIdParam = normalizeCycleId(cycleId);
+  console.log('exportEvaluations - cycleId param:', cycleId, 'normalized:', normalizedCycleIdParam);
+  console.log('Total rows in Evaluations:', data.length - 1);
+
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const rowCycleId = row[cycleIdx];
 
     // Normalize and compare cycle IDs
     const normalizedRowCycleId = normalizeCycleId(rowCycleId);
-    const cycleMatch = (normalizedRowCycleId === cycleId);
+    const cycleMatch = (normalizedRowCycleId === normalizedCycleIdParam);
+
+    console.log('Row', i, '- CycleID:', rowCycleId, 'normalized:', normalizedRowCycleId, 'match:', cycleMatch);
 
     if (!cycleMatch) continue;
     if (personId && row[subjectIdx] !== personId) continue;
