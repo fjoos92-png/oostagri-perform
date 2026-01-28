@@ -682,6 +682,8 @@
             const url = new URL(API_URL);
             url.searchParams.append('action', action);
             Object.entries(params).forEach(([key, value]) => {
+                // Skip null/undefined values - don't send them as "null" strings
+                if (value === null || value === undefined) return;
                 if (typeof value === 'object') {
                     url.searchParams.append(key, JSON.stringify(value));
                 } else {
