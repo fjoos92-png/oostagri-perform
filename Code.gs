@@ -1,6 +1,6 @@
 // ============================================
 // OOSTAGRI LEIERSKAP FEEDBACK - APPS SCRIPT
-// Weergawe 1.3.1 - Fix kolom name handling
+// Weergawe 1.3.3 - Fix Q1Grade vs q1Grade kolom name
 // ============================================
 
 function doGet(e) {
@@ -264,8 +264,8 @@ function getInitialData(userId, role, monthId) {
         let totalGrade = 0;
         let gradeCount = 0;
         for (let q = 1; q <= 7; q++) {
-          const gradeIdx = findColumnIndex(evalHeaders, 'q' + q + 'Grade');
-          const commentIdx = findColumnIndex(evalHeaders, 'q' + q + 'Comment');
+          const gradeIdx = findColumnIndex(evalHeaders, 'q' + q + 'Grade', 'Q' + q + 'Grade');
+          const commentIdx = findColumnIndex(evalHeaders, 'q' + q + 'Comment', 'Q' + q + 'Comment');
           if (gradeIdx >= 0) {
             const grade = row[gradeIdx] || 0;
             evalObj.grades['q' + q] = grade;
@@ -401,7 +401,7 @@ function buildCoachSummary(cycleId, evalsData, evalHeaders, subjects) {
     const selfGrades = {};
 
     for (let q = 1; q <= 7; q++) {
-      const gradeIdx = findColumnIndex(evalHeaders, 'q' + q + 'Grade');
+      const gradeIdx = findColumnIndex(evalHeaders, 'q' + q + 'Grade', 'Q' + q + 'Grade');
       if (gradeIdx < 0) continue;
 
       const peerGradeValues = peerEvals.map(e => e[gradeIdx]).filter(g => g > 0);
@@ -684,8 +684,8 @@ function getUserEvaluations(userId, cycleId) {
     let gradeCount = 0;
 
     for (let q = 1; q <= 7; q++) {
-      const gradeIdx = findColumnIndex(headers, 'q' + q + 'Grade');
-      const commentIdx = findColumnIndex(headers, 'q' + q + 'Comment');
+      const gradeIdx = findColumnIndex(headers, 'q' + q + 'Grade', 'Q' + q + 'Grade');
+      const commentIdx = findColumnIndex(headers, 'q' + q + 'Comment', 'Q' + q + 'Comment');
 
       if (gradeIdx >= 0) {
         const grade = row[gradeIdx] || 0;
@@ -737,8 +737,8 @@ function updateEvaluation(data) {
 
       // Update the row
       for (let q = 1; q <= 7; q++) {
-        const gradeIdx = findColumnIndex(headers, 'q' + q + 'Grade');
-        const commentIdx = findColumnIndex(headers, 'q' + q + 'Comment');
+        const gradeIdx = findColumnIndex(headers, 'q' + q + 'Grade', 'Q' + q + 'Grade');
+        const commentIdx = findColumnIndex(headers, 'q' + q + 'Comment', 'Q' + q + 'Comment');
 
         if (gradeIdx >= 0 && data['q' + q + 'Grade'] !== undefined) {
           evalsSheet.getRange(i + 1, gradeIdx + 1).setValue(data['q' + q + 'Grade']);
@@ -880,8 +880,8 @@ function getPersonDetail(subjectId, cycleId, requesterId) {
     };
 
     for (let q = 1; q <= 7; q++) {
-      const gradeIdx = findColumnIndex(headers, 'q' + q + 'Grade');
-      const commentIdx = findColumnIndex(headers, 'q' + q + 'Comment');
+      const gradeIdx = findColumnIndex(headers, 'q' + q + 'Grade', 'Q' + q + 'Grade');
+      const commentIdx = findColumnIndex(headers, 'q' + q + 'Comment', 'Q' + q + 'Comment');
       if (gradeIdx >= 0) evalObj.grades['q' + q] = row[gradeIdx] || 0;
       if (commentIdx >= 0) evalObj.comments['q' + q] = row[commentIdx] || '';
     }
@@ -963,8 +963,8 @@ function exportEvaluations(cycleId, requesterId, personId) {
     };
 
     for (let q = 1; q <= 7; q++) {
-      const gradeIdx = findColumnIndex(headers, 'q' + q + 'Grade');
-      const commentIdx = findColumnIndex(headers, 'q' + q + 'Comment');
+      const gradeIdx = findColumnIndex(headers, 'q' + q + 'Grade', 'Q' + q + 'Grade');
+      const commentIdx = findColumnIndex(headers, 'q' + q + 'Comment', 'Q' + q + 'Comment');
       if (gradeIdx >= 0) evalObj.grades['q' + q] = row[gradeIdx] || 0;
       if (commentIdx >= 0) evalObj.comments['q' + q] = row[commentIdx] || '';
     }
