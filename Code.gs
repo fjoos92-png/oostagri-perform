@@ -1,6 +1,6 @@
 // ============================================
 // OOSTAGRI LEIERSKAP FEEDBACK - APPS SCRIPT
-// Weergawe 1.3.3 - Fix Q1Grade vs q1Grade kolom name
+// Weergawe 1.3.4 - Lees Melkstal antwoorde uit individuele kolomme
 // ============================================
 
 function doGet(e) {
@@ -302,15 +302,21 @@ function getInitialData(userId, role, monthId) {
       const mAnswersIdx = findColumnIndex(mHeaders, 'Answers', 'answers');
       const mLocationIdx = findColumnIndex(mHeaders, 'Location', 'SubjectLocation', 'location');
 
-      console.log('MelkstalEvaluations columns - Month idx:', mMonthIdx, 'Headers:', mHeaders);
+      // Build a map of answer column indices (ms1, ms2, ms3, etc.)
+      const mAnswerColumnMap = {};
+      mHeaders.forEach((header, idx) => {
+        if (header && header.toString().match(/^ms\d/i)) {
+          mAnswerColumnMap[header] = idx;
+        }
+      });
+
+      console.log('MelkstalEvaluations columns - Month idx:', mMonthIdx, 'Answer columns:', Object.keys(mAnswerColumnMap).length);
       console.log('Looking for monthId:', monthId, 'and userId:', userId);
 
       for (let i = 1; i < melkstalData.length; i++) {
         const row = melkstalData[i];
         const rowEvaluator = row[mEvaluatorIdx];
         const rowMonth = row[mMonthIdx];
-
-        console.log('Melkstal row', i, '- Evaluator:', rowEvaluator, 'Month:', rowMonth);
 
         if (!compareAsString(rowEvaluator, userId)) continue;
 
@@ -319,7 +325,7 @@ function getInitialData(userId, role, monthId) {
           completedSubordinates.push(row[mSubjectIdx]);
         }
 
-        // Parse answers - handle both JSON string and object
+        // Parse answers - first try JSON "Answers" column
         let answers = {};
         if (mAnswersIdx >= 0 && row[mAnswersIdx]) {
           try {
@@ -328,6 +334,16 @@ function getInitialData(userId, role, monthId) {
               : row[mAnswersIdx];
           } catch (e) {
             console.log('Could not parse answers:', e);
+          }
+        }
+
+        // If no answers from JSON, read from individual columns (ms1, ms2, etc.)
+        if (Object.keys(answers).length === 0 && Object.keys(mAnswerColumnMap).length > 0) {
+          for (const [colName, colIdx] of Object.entries(mAnswerColumnMap)) {
+            const value = row[colIdx];
+            if (value !== undefined && value !== null && value !== '') {
+              answers[colName] = value;
+            }
           }
         }
 
@@ -1111,6 +1127,14 @@ function getUserMelkstalEvaluations(userId) {
   const answersIdx = findColumnIndex(headers, 'Answers', 'answers');
   const locationIdx = findColumnIndex(headers, 'Location', 'SubjectLocation', 'location');
 
+  // Build a map of answer column indices (ms1, ms2, ms3, etc.)
+  const answerColumnMap = {};
+  headers.forEach((header, idx) => {
+    if (header && header.toString().match(/^ms\d/i)) {
+      answerColumnMap[header] = idx;
+    }
+  });
+
   const evaluations = [];
 
   for (let i = 1; i < data.length; i++) {
@@ -1118,6 +1142,8 @@ function getUserMelkstalEvaluations(userId) {
     if (!compareAsString(row[evaluatorIdx], userId)) continue;
 
     let answers = {};
+
+    // First try to get answers from JSON "Answers" column
     if (answersIdx >= 0 && row[answersIdx]) {
       try {
         answers = typeof row[answersIdx] === 'string'
@@ -1125,6 +1151,16 @@ function getUserMelkstalEvaluations(userId) {
           : row[answersIdx];
       } catch (e) {
         console.log('Could not parse answers:', e);
+      }
+    }
+
+    // If no answers from JSON, read from individual columns (ms1, ms2, etc.)
+    if (Object.keys(answers).length === 0 && Object.keys(answerColumnMap).length > 0) {
+      for (const [colName, colIdx] of Object.entries(answerColumnMap)) {
+        const value = row[colIdx];
+        if (value !== undefined && value !== null && value !== '') {
+          answers[colName] = value;
+        }
       }
     }
 
