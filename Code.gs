@@ -206,12 +206,14 @@ function getInitialData(userId, role, monthId) {
       if (rowCycleId === cycle.id) {
         cycleMatch = true;
       } else if (rowCycleId instanceof Date) {
-        // Convert date to YYYY-MM format and compare
+        // Convert date to YYYY-MM format and compare (uses script timezone)
         const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
         cycleMatch = (dateStr === cycle.id);
       } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-        // ISO date string - extract YYYY-MM
-        const dateStr = rowCycleId.substring(0, 7);
+        // ISO date string like "2025-12-31T22:00:00.000Z" - parse and convert with timezone
+        // This handles UTC dates that roll over to next month in local timezone
+        const parsedDate = new Date(rowCycleId);
+        const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
         cycleMatch = (dateStr === cycle.id);
       }
 
@@ -362,7 +364,9 @@ function buildCoachSummary(cycleId, evalsData, evalHeaders, subjects) {
         const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
         cycleMatch = (dateStr === cycleId);
       } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-        const dateStr = rowCycleId.substring(0, 7);
+        // Parse ISO string and convert with timezone
+        const parsedDate = new Date(rowCycleId);
+        const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
         cycleMatch = (dateStr === cycleId);
       }
 
@@ -569,7 +573,9 @@ function getEvaluationStatus(userId, cycleId) {
       const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
       cycleMatch = (dateStr === cycleId);
     } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-      const dateStr = rowCycleId.substring(0, 7);
+      // Parse ISO string and convert with timezone
+      const parsedDate = new Date(rowCycleId);
+      const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
       cycleMatch = (dateStr === cycleId);
     }
 
@@ -660,7 +666,9 @@ function getUserEvaluations(userId, cycleId) {
       const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
       cycleMatch = (dateStr === cycleId);
     } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-      const dateStr = rowCycleId.substring(0, 7);
+      // Parse ISO string and convert with timezone
+      const parsedDate = new Date(rowCycleId);
+      const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
       cycleMatch = (dateStr === cycleId);
     }
 
@@ -867,7 +875,9 @@ function getPersonDetail(subjectId, cycleId, requesterId) {
       const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
       cycleMatch = (dateStr === cycleId);
     } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-      const dateStr = rowCycleId.substring(0, 7);
+      // Parse ISO string and convert with timezone
+      const parsedDate = new Date(rowCycleId);
+      const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
       cycleMatch = (dateStr === cycleId);
     }
 
@@ -948,7 +958,9 @@ function exportEvaluations(cycleId, requesterId, personId) {
       const dateStr = Utilities.formatDate(rowCycleId, Session.getScriptTimeZone(), 'yyyy-MM');
       cycleMatch = (dateStr === cycleId);
     } else if (typeof rowCycleId === 'string' && rowCycleId.includes('T')) {
-      const dateStr = rowCycleId.substring(0, 7);
+      // Parse ISO string and convert with timezone
+      const parsedDate = new Date(rowCycleId);
+      const dateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM');
       cycleMatch = (dateStr === cycleId);
     }
 
